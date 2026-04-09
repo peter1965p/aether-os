@@ -1,5 +1,5 @@
 import db from '@/lib/db';
-import { updatePost } from '@/modules/blog/lib/actions';
+import { updatePost } from '@/modules/blog/actions';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
