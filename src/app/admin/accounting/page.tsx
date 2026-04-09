@@ -19,15 +19,28 @@ import {
 
 async function AuditTrail() {
   try {
-    // SQL Query angepasst an die wahrscheinlich richtigen Tabellennamen (products statt produkte)
-    // und korrigierte Spaltennamen laut PGRST200 Error
-    const logs = db.prepare(`
-      SELECT o.id, o.datum, o.typ, o.gesamtpreis, o.status, p.name as artikel_name, p.ust_satz
-      FROM orders o
-      JOIN order_items oi ON o.id = oi.order_id
-      JOIN products p ON oi.product_id = p.id
-      ORDER BY o.datum DESC LIMIT 8
-    `).all() as any[];
+    // AETHER OS // SUPABASE ENGINE ACCESS
+    // Wir nutzen den Supabase-Client für die relationale Abfrage
+    const { data: logs, error } = await db
+      .from('orders')
+      .select(`
+        id, 
+        datum, 
+        typ, 
+        gesamtpreis, 
+        status, 
+        order_items (
+          product_id,
+          products (
+            name,
+            ust_satz
+          )
+        )
+      `)
+      .order('datum', { ascending: false })
+      .limit(8);
+
+    if (error) throw error;
 
     return (
       <div className="w-full bg-[#050505] border border-white/5 rounded-[2.5rem] overflow-hidden mt-12 shadow-2xl">
@@ -60,49 +73,60 @@ async function AuditTrail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {logs.map((log) => (
-                <tr key={log.id} className="group hover:bg-white/[0.02] transition-colors">
-                  <td className="p-6 font-mono text-[10px] text-white/40 italic">
-                    {new Date(log.datum).toLocaleString('de-DE')}
-                  </td>
-                  <td className="p-6">
-                    {log.typ === 'POS' ? (
-                      <div className="flex items-center gap-2 text-amber-500">
-                        <Monitor size={14} />
-                        <span className="text-[10px] font-black uppercase italic">Terminal</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-blue-500">
-                        <Globe size={14} />
-                        <span className="text-[10px] font-black uppercase italic">Webstore</span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-6 font-black uppercase italic text-white group-hover:text-green-400 transition-colors">
-                    {log.artikel_name}
-                  </td>
-                  <td className="p-6 text-right font-mono text-[10px] text-white/40">{log.ust_satz}%</td>
-                  <td className="p-6 text-right font-black italic text-lg tracking-tighter">
-                    {(log.gesamtpreis || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
-                  </td>
-                  <td className="p-6 text-right">
-                    <button
-                      className="p-2 bg-white/5 hover:bg-green-500 hover:text-black rounded-lg transition-all active:scale-90"
-                      title="Generate PDF Invoice"
-                    >
-                      <FileText size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {logs?.map((log: any) => {
+                // Mapping der verschachtelten Supabase-Daten
+                const productInfo = log.order_items?.[0]?.products;
+                
+                return (
+                  <tr key={log.id} className="group hover:bg-white/[0.02] transition-colors">
+                    <td className="p-6 font-mono text-[10px] text-white/40 italic">
+                      {log.datum ? new Date(log.datum).toLocaleString('de-DE') : '---'}
+                    </td>
+                    <td className="p-6">
+                      {log.typ === 'POS' ? (
+                        <div className="flex items-center gap-2 text-amber-500">
+                          <Monitor size={14} />
+                          <span className="text-[10px] font-black uppercase italic">Terminal</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-blue-500">
+                          <Globe size={14} />
+                          <span className="text-[10px] font-black uppercase italic">Webstore</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-6 font-black uppercase italic text-white group-hover:text-green-400 transition-colors">
+                      {productInfo?.name || 'Unknown Asset'}
+                    </td>
+                    <td className="p-6 text-right font-mono text-[10px] text-white/40">
+                      {productInfo?.ust_satz || 0}%
+                    </td>
+                    <td className="p-6 text-right font-black italic text-lg tracking-tighter">
+                      {(log.gesamtpreis || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
+                    </td>
+                    <td className="p-6 text-right">
+                      <button
+                        className="p-2 bg-white/5 hover:bg-green-500 hover:text-black rounded-lg transition-all active:scale-90"
+                        title="Generate PDF Invoice"
+                      >
+                        <FileText size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
     );
   } catch (e) {
-    console.error("AuditTrail SQL Error:", e);
-    return <div className="p-8 text-red-500 font-mono text-xs uppercase bg-red-500/5 rounded-3xl border border-red-500/10 mt-12">Audit Trail Linkage Error // Check DB Schema</div>;
+    console.error("AuditTrail Supabase Error:", e);
+    return (
+      <div className="p-8 text-red-500 font-mono text-xs uppercase bg-red-500/5 rounded-3xl border border-red-500/10 mt-12">
+        Audit Trail Connection Error // Verify Supabase Schema & Relationship
+      </div>
+    );
   }
 }
 
@@ -187,7 +211,7 @@ export default async function AccountingPage() {
             <div className="flex gap-12 border-t border-white/5 pt-10 mt-12">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Orders: <span className="text-white ml-2">{financeData.orderCount || 0}</span></p>
+                <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Orders: <span className="text-white ml-2">{financeData.order_count || 0}</span></p>
               </div>
               <div className="flex items-center gap-3">
                 <Package size={14} className="text-blue-500" />
