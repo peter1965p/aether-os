@@ -19,25 +19,23 @@ import {
 
 async function AuditTrail() {
   try {
-    // AETHER OS // SUPABASE ENGINE ACCESS
-    // Wir nutzen den Supabase-Client für die relationale Abfrage
+    // AETHER OS // DATABASE SYNC
+    // Nutzt exakt dein Schema: orders -> order_items -> products
     const { data: logs, error } = await db
       .from('orders')
       .select(`
         id, 
-        datum, 
-        typ, 
-        gesamtpreis, 
+        order_date, 
         status, 
+        total_price, 
         order_items (
           product_id,
           products (
-            name,
-            ust_satz
+            name
           )
         )
       `)
-      .order('datum', { ascending: false })
+      .order('order_date', { ascending: false })
       .limit(8);
 
     if (error) throw error;
@@ -52,11 +50,8 @@ async function AuditTrail() {
             </h2>
           </div>
           <div className="flex gap-2">
-             <span className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[9px] font-black text-amber-500 uppercase tracking-widest">
-               <Monitor size={10} /> POS
-             </span>
              <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[9px] font-black text-blue-500 uppercase tracking-widest">
-               <Globe size={10} /> ONLINE
+               <Monitor size={10} /> SYSTEM STATUS: {logs?.[0]?.status || 'ONLINE'}
              </span>
           </div>
         </div>
@@ -65,50 +60,36 @@ async function AuditTrail() {
             <thead>
               <tr className="text-[10px] uppercase font-black tracking-[0.2em] text-white/20 border-b border-white/5">
                 <th className="p-6">Timestamp</th>
-                <th className="p-6">Source</th>
-                <th className="p-6">Asset</th>
-                <th className="p-6 text-right">Tax</th>
+                <th className="p-6">Asset / Product</th>
+                <th className="p-6 text-right">Status</th>
                 <th className="p-6 text-right">Amount</th>
                 <th className="p-6 text-right">Invoice</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {logs?.map((log: any) => {
-                // Mapping der verschachtelten Supabase-Daten
                 const productInfo = log.order_items?.[0]?.products;
                 
                 return (
                   <tr key={log.id} className="group hover:bg-white/[0.02] transition-colors">
                     <td className="p-6 font-mono text-[10px] text-white/40 italic">
-                      {log.datum ? new Date(log.datum).toLocaleString('de-DE') : '---'}
-                    </td>
-                    <td className="p-6">
-                      {log.typ === 'POS' ? (
-                        <div className="flex items-center gap-2 text-amber-500">
-                          <Monitor size={14} />
-                          <span className="text-[10px] font-black uppercase italic">Terminal</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-blue-500">
-                          <Globe size={14} />
-                          <span className="text-[10px] font-black uppercase italic">Webstore</span>
-                        </div>
-                      )}
+                      {log.order_date ? new Date(log.order_date).toLocaleString('de-DE') : '---'}
                     </td>
                     <td className="p-6 font-black uppercase italic text-white group-hover:text-green-400 transition-colors">
-                      {productInfo?.name || 'Unknown Asset'}
-                    </td>
-                    <td className="p-6 text-right font-mono text-[10px] text-white/40">
-                      {productInfo?.ust_satz || 0}%
-                    </td>
-                    <td className="p-6 text-right font-black italic text-lg tracking-tighter">
-                      {(log.gesamtpreis || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
+                      {productInfo?.name || 'Bulk Transaction'}
                     </td>
                     <td className="p-6 text-right">
-                      <button
-                        className="p-2 bg-white/5 hover:bg-green-500 hover:text-black rounded-lg transition-all active:scale-90"
-                        title="Generate PDF Invoice"
-                      >
+                      <span className={`text-[9px] font-black uppercase px-2 py-1 rounded border ${
+                        log.status === 'completed' ? 'border-green-500/20 text-green-500' : 'border-white/10 text-white/30'
+                      }`}>
+                        {log.status}
+                      </span>
+                    </td>
+                    <td className="p-6 text-right font-black italic text-lg tracking-tighter">
+                      {(Number(log.total_price) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
+                    </td>
+                    <td className="p-6 text-right">
+                      <button className="p-2 bg-white/5 hover:bg-green-500 hover:text-black rounded-lg transition-all active:scale-90">
                         <FileText size={16} />
                       </button>
                     </td>
@@ -121,10 +102,10 @@ async function AuditTrail() {
       </div>
     );
   } catch (e) {
-    console.error("AuditTrail Supabase Error:", e);
+    console.error("AuditTrail Sync Error:", e);
     return (
-      <div className="p-8 text-red-500 font-mono text-xs uppercase bg-red-500/5 rounded-3xl border border-red-500/10 mt-12">
-        Audit Trail Connection Error // Verify Supabase Schema & Relationship
+      <div className="p-8 text-white/20 font-mono text-[10px] uppercase text-center italic border border-white/5 rounded-[2.5rem] mt-12">
+        Terminal Offline // Handshake Failed
       </div>
     );
   }
@@ -211,7 +192,7 @@ export default async function AccountingPage() {
             <div className="flex gap-12 border-t border-white/5 pt-10 mt-12">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Orders: <span className="text-white ml-2">{financeData.order_count || 0}</span></p>
+                <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">Orders: <span className="text-white ml-2">{financeData.orderCount || 0}</span></p>
               </div>
               <div className="flex items-center gap-3">
                 <Package size={14} className="text-blue-500" />
