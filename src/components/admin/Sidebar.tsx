@@ -23,7 +23,8 @@ import {
   Database,
   ChevronLeft,
   ChevronRight,
-  MapPin, // Icon für SEO & GEO
+  MapPin,
+  Zap, // Icon für SEO & GEO
 } from "lucide-react";
 
 export default function Sidebar({ userSettings }: { userSettings?: any }) {
@@ -62,6 +63,7 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
 
     // --- SYSTEM CONTROL ---
     { id: 'message', label: 'Message Center', href: '/admin/message', icon: Mail, separator: true },
+    { id: 'news', label: 'News Center', href: '/admin/news', icon: Zap },
     { id: 'forms', label: 'Formular Center', href: '/admin/forms', icon: ClipboardList, isFree: true },
     { id: 'modules', label: 'Module Ecosystem', href: '/admin/modules', icon: Settings },
     { id: 'db', label: 'Database', href: '/admin/db', icon: Database },
