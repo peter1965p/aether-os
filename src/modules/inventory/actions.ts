@@ -638,3 +638,32 @@ export async function updateProjectTask(taskId: string, updateData: any) {
   console.log("AETHER OS // Task updated:", taskId, updateData);
   return { success: true };
 }
+
+/**
+ * AETHER OS // ACCOUNTING & INVENTORY CORE
+ */
+
+export async function getGrowthStats() {
+  try {
+    const { data, error } = await db
+      .from("orders")
+      .select("total_price, order_date")
+      .limit(10);
+
+    if (error) throw error;
+
+    return {
+      labels: (data || []).map((d: { order_date: string }) => new Date(d.order_date).getMonth()),
+      datasets: [
+        {
+          label: 'Revenue Growth',
+          data: (data || []).map((d: { total_price: number }) => d.total_price),
+        }
+      ]
+    };
+  } catch (error) {
+    console.error("Accounting Error [Growth]:", error);
+    return { labels: [], datasets: [] };
+  }
+}
+
