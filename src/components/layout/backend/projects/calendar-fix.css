@@ -1,0 +1,67 @@
+/* src/components/layout/backend/projects/calendar-fix.css */
+
+/* Kalender-Gitter: Linien endlich sichtbar machen */
+.fc-theme-standard td,
+.fc-theme-standard th,
+.fc-theme-standard .fc-scrollgrid {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Header-Hintergrund (Der weiße Balken oben in der Timeline) */
+.fc-col-header {
+    background-color: #1e5d9c !important; /* Dein neues Deep-Blue */
+}
+
+/* Header-Texte (Wochentage) */
+.fc-col-header-cell-cushion {
+    color: #f59e0b !important; /* Kräftiges Amber auf Blau knallt extrem gut */
+    text-transform: uppercase;
+    font-weight: 900;
+    letter-spacing: 1px;
+    font-size: 11px;
+    display: block;
+    padding: 5px 0 !important;
+}
+
+/* Event-Kapseln: Hier kommt das Leuchten */
+.fc-event {
+    border-radius: 8px !important;
+    border: none !important;
+    padding: 3px 6px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Prioritäten mit Neon-Glow */
+.event-priority-high {
+    background: #f59e0b !important; /* Volles Amber */
+    color: #000 !important; /* Schwarze Schrift auf Amber für Max-Kontrast */
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5) !important;
+    font-weight: 900 !important;
+}
+
+.event-priority-medium {
+    background: #0ea5e9 !important; /* Kräftiges Blau */
+    color: #fff !important; /* Hier wieder Weiß für die Lesbarkeit im blauen Task */
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.4) !important;
+}
+
+.event-priority-low {
+    background: #10b981 !important; /* Giftiges Grün */
+    color: #000 !important;
+}
+
+/* Heute-Markierung im Kalender */
+.fc-day-today {
+    background: rgba(
+        30,
+        93,
+        156,
+        0.1
+    ) !important; /* Dezenter blauer Schimmer für heute */
+}
+.fc-day-today .fc-daygrid-day-number {
+    background: #f59e0b;
+    color: #000 !important;
+    border-radius: 4px;
+    padding: 2px 6px;
+}
