@@ -667,3 +667,56 @@ export async function getGrowthStats() {
   }
 }
 
+/**
+ * AETHER OS // AI STRATEGY ENGINE
+ * Analysiert den Lagerbestand und generiert Handlungsempfehlungen
+ */
+export async function getAIInventoryStrategy() {
+  try {
+    // 1. Daten holen (Produkte inkl. Lieferanten-Verknüpfung)
+    const { data: products, error } = await db
+      .from("produkte")
+      .select(`
+        name, 
+        lagerbestand, 
+        min_bestand, 
+        suppliers ( name, kontakt_email )
+      `);
+
+    if (error) throw error;
+
+    // 2. Kritische Produkte filtern
+    const lowStockItems = products?.filter(
+      (p: any) => (p.lagerbestand || 0) < (p.min_bestand || 5)
+    ) || [];
+
+    if (lowStockItems.length === 0) {
+      return {
+        status: "OPTIMAL",
+        message: "Alle Systeme im grünen Bereich. Aktuell keine Nachbestellungen erforderlich.",
+        recommendations: []
+      };
+    }
+
+    // 3. Empfehlungen generieren
+    const recommendations = lowStockItems.map((p: any) => ({
+      product: p.name,
+      current: p.lagerbestand,
+      min: p.min_bestand,
+      action: `Nachbestellung einleiten bei ${p.suppliers?.name || "Standard-Lieferant"}`,
+      priority: (p.lagerbestand === 0) ? "CRITICAL" : "HIGH"
+    }));
+
+    return {
+      status: "ACTION_REQUIRED",
+      message: `KI-Analyse: ${lowStockItems.length} Produkte unterschreiten den Mindestbestand.`,
+      recommendations
+    };
+  } catch (error) {
+    console.error("AETHER_STRATEGY_ERROR:", error);
+    return { status: "ERROR", message: "Strategie-Engine offline.", recommendations: [] };
+  }
+}
+
+
+
