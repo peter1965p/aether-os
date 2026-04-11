@@ -62,7 +62,7 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
     <aside className={`h-screen bg-black border-r border-white/5 transition-all duration-300 flex flex-col z-50 ${isCollapsed ? "w-16" : "w-64"}`}>
       <div className="p-4 flex items-center justify-between border-b border-white/10 min-h-[64px]">
         {!isCollapsed && (
-          <span className="font-black text-xs tracking-tighter text-white uppercase italic">
+          <span className="text-xl tracking-tighter text-orange-600 uppercase">
             AETHER <span className="text-blue-600">OS</span>
           </span>
         )}
