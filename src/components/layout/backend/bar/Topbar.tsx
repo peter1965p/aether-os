@@ -9,9 +9,9 @@ import {
   LogOut,
   ChevronDown,
   SearchCode,
-  ArrowRight
+  Clock
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { handleLogout } from "@/modules/auth/actions";
@@ -27,21 +27,60 @@ export default function Topbar({
 }: TopbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 Minuten in Sekunden
   const router = useRouter();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Zentrale Search-Funktion für Enter & Button
+  // Logout-Logik
+  const terminateSession = useCallback(async () => {
+    setIsMenuOpen(false);
+    await handleLogout();
+  }, []);
+
+  // --- SESSION TIMER LOGIK ---
+  useEffect(() => {
+    // Reset-Funktion bei Aktivität
+    const resetTimer = () => setTimeLeft(300);
+
+    // Events, die den Timer zurücksetzen (Maus, Tastatur)
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("keydown", resetTimer);
+    window.addEventListener("click", resetTimer);
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          terminateSession();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keydown", resetTimer);
+      window.removeEventListener("click", resetTimer);
+    };
+  }, [terminateSession]);
+
+  // Formatierung der Zeit (MM:SS)
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const initiateGlobalSearch = () => {
     if (searchQuery.trim().length > 1) {
-      // encodeURIComponent ist ÜBERLEBENSWICHTIG für Sonderzeichen wie @ oder .
       const safeQuery = encodeURIComponent(searchQuery.trim());
       router.push(`/admin/search?q=${safeQuery}`);
     }
   };
 
-  // Outside Click Handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -52,7 +91,6 @@ export default function Topbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // CMD + K Shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -63,11 +101,6 @@ export default function Topbar({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-  const handleTerminate = async () => {
-    setIsMenuOpen(false);
-    await handleLogout();
-  };
 
   return (
     <header className="h-24 border-b border-white/[0.05] bg-[#050505]/80 backdrop-blur-xl sticky top-0 z-50 flex items-center justify-between px-10 gap-10">
@@ -87,7 +120,6 @@ export default function Topbar({
             placeholder="KUNDEN, PRODUKTE, RECHNUNGEN SCANNE..."
             className="w-full bg-[#0d0d0d] border border-white/[0.05] rounded-2xl py-3 pl-14 pr-12 text-[9px] font-black uppercase tracking-[0.2em] text-white placeholder-gray-800 focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all shadow-inner"
           />
-          
           <div className="absolute inset-y-0 right-4 flex items-center">
              <kbd className="bg-[#151515] border border-white/10 px-2 py-1 rounded text-[8px] font-black text-gray-600 uppercase group-focus-within:opacity-0 transition-opacity">
                ⌘ K
@@ -95,7 +127,6 @@ export default function Topbar({
           </div>
         </div>
 
-        {/* SEARCH EXECUTE BUTTON */}
         <button 
           onClick={initiateGlobalSearch}
           disabled={searchQuery.length < 2}
@@ -108,8 +139,21 @@ export default function Topbar({
 
       <div className="flex items-center gap-8">
         
-        {/* SYSTEM STATUS */}
+        {/* SESSION TIMER & SYSTEM STATUS */}
         <div className="flex items-center gap-6 border-r border-white/5 pr-8">
+          
+          {/* COUNTDOWN TIMER */}
+          <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all duration-500 ${
+            timeLeft <= 30 
+            ? "bg-red-500/10 border-red-500/50 text-red-500 animate-pulse" 
+            : "bg-white/[0.02] border-white/10 text-gray-400"
+          }`}>
+            <Clock size={12} className={timeLeft <= 30 ? "animate-spin-slow" : ""} />
+            <span className="text-[10px] font-mono font-bold tracking-[0.2em]">
+              {formatTime(timeLeft)}
+            </span>
+          </div>
+
           <button className="relative p-2 text-gray-600 hover:text-white transition-colors group">
             <Bell className="w-4 h-4 group-hover:rotate-12 transition-transform" />
             <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] animate-pulse" />
@@ -186,7 +230,7 @@ export default function Topbar({
 
               <div className="mt-6 pt-2 border-t border-white/5 px-3">
                 <button
-                  onClick={handleTerminate}
+                  onClick={terminateSession}
                   className="flex items-center gap-4 w-full px-5 py-5 rounded-[1.8rem] bg-red-500/[0.02] hover:bg-red-500/10 text-red-600/60 hover:text-red-500 transition-all text-left group/logout"
                 >
                   <LogOut className="w-4 h-4 group-hover/logout:-translate-x-1 transition-transform" />
