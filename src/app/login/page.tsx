@@ -32,7 +32,7 @@ export default function LoginPage() {
         
         {/* HEADER */}
         <div>
-          <h2 className="text-orange-500 uppercase tracking-tighter text-xl font-black">
+          <h2 className="text-orange-600 uppercase tracking-tighter text-sm font-black">
             AETHER <span className="text-[#1e5d9c]">OS</span>
           </h2>
           <p className="text-zinc-600 text-[9px] font-black uppercase tracking-[0.4em] mt-2">
