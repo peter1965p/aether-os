@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import db from "@/lib/db";
 import Navbar from "@/components/layout/frontend/bar/Navbar";
 import Footer from "@/components/layout/frontend/footer/Footer";
+import Tracker from "@/components/Tracker";
 import {
   Inter,
   Bebas_Neue,
@@ -112,6 +113,9 @@ export default async function FrontendLayout({
           
           ::selection { background: rgba(${colors.accent}, 0.3); color: white; }
         `}} />
+
+        {/* TRACKING LAYER // AETHER OS TELEMETRY */}
+        <Tracker />
 
         {/* NAVIGATION LAYER */}
         <Navbar session={hasSession} />
