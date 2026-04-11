@@ -99,7 +99,7 @@ export default async function ImpressumContactPage() {
                     <p className="text-[10px] uppercase text-slate-500 tracking-widest mb-1">Direct Contact</p>
                     <p className="text-sm text-white font-bold italic uppercase">
                         M: 015569 448813<br />
-                        E: news24regional@gmail.com
+                        E: peter@paeffgen-it.de
                     </p>
                   </div>
                 </div>
@@ -130,7 +130,7 @@ export default async function ImpressumContactPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                     <p className="text-[8px] font-mono uppercase text-slate-600 mb-1">Region</p>
-                    <p className="text-[10px] text-white font-bold italic uppercase">RLP // NRW // HES</p>
+                    <p className="text-[10px] text-white font-bold italic uppercase">RLP // NRW // HES // BW</p>
                 </div>
                 <div>
                     <p className="text-[8px] font-mono uppercase text-slate-600 mb-1">Availability</p>
