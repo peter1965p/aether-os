@@ -35,7 +35,7 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', href: '/admin', icon: Home },
     { id: 'blog', label: 'Blog Edit', href: '/admin/blog', icon: FileText },
-    { id: 'DPS', label: 'DPS Seitenverwaltung', href: 'admin/pages', icon: AppWindow },
+    { id: 'DPS', label: 'DPS Seitenverwaltung', href: '/admin/pages', icon: AppWindow },
     { id: 'comments', label: 'Kommentare', href: '/admin/comments', icon: MessageSquareText },
     { id: 'categories', label: 'Kategorien', href: '/admin/categories', icon: Layers },
     
