@@ -105,7 +105,7 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
                       {item.label}
                     </span>
                     {item.isFree && (
-                      <span className="text-[7px] font-bold bg-[#b33927] text-white px-1.5 py-0.5 rounded-sm animate-pulse shadow-[0_0_10px_rgba(179,57,39,0.4)]">
+                      <span className="text-[7px] font-bold bg-green-600 text-white px-1.5 py-0.5 rounded-sm animate-pulse shadow-[0_0_10px_rgba(179,57,39,0.4)]">
                         FREE
                       </span>
                     )}
