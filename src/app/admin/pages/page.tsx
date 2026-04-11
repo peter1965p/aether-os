@@ -30,7 +30,7 @@ export default async function PagesManagement() {
       <div className="flex justify-between items-center mb-10">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
-            DPS | Seitenverwaltung
+            DPS Seitenverwaltung
           </h1>
           <p className="text-zinc-500 text-[10px] mt-1 uppercase tracking-[0.3em] font-bold">
             DPS | Structure & Core Nodes // AETHER OS
