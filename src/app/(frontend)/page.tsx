@@ -217,7 +217,7 @@ export default async function HomePage() {
             <div className="absolute top-0 right-0 p-2 font-mono text-[8px] bg-blue-600 text-white uppercase italic tracking-widest">Available May 2026</div>
             <h3 className="text-xs font-mono font-bold uppercase mb-6 text-blue-500 tracking-widest">CURRENT STATUS // RECRUITING OPEN</h3>
             <p className="text-sm text-slate-300 leading-relaxed italic mb-8">"Nach erfolgreichem Abschluss der Onsite-Projekte für RWE & E.ON stehe ich ab Mai 2026 für neue Herausforderungen zur Verfügung."</p>
-            <a href="/contact" className="group flex items-center gap-3 font-mono text-[11px] text-white uppercase tracking-widest border-b border-blue-500 w-fit pb-2 hover:text-blue-400 transition-all">
+            <a href="/impressum" className="group flex items-center gap-3 font-mono text-[11px] text-white uppercase tracking-widest border-b border-blue-500 w-fit pb-2 hover:text-blue-400 transition-all">
               PROJEKT ANFRAGE SENDEN <ExternalLink size={12} className="group-hover:translate-x-1 transition-transform" />
             </a>
           </div>
