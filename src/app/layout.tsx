@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import SessionGuard from "@/modules/auth/SessionTimeout";
 import "./globals.css";
 
-// GEO-Import: Wir holen die Daten direkt aus dem Hub
+// GEO-Import
 import { getGeoContextForFrontend } from "@/modules/inventory/actions";
 
 export default async function RootLayout({
@@ -20,9 +20,8 @@ export default async function RootLayout({
   const geoSchema = await getGeoContextForFrontend();
 
   return (
-    <html lang="de">
+    <html lang="de" className="bg-[#050505]">
       <head>
-        {/* GEO-Injektion: Das hier lesen KIs statt klassischem SEO */}
         {geoSchema && (
           <script
             type="application/ld+json"
@@ -30,15 +29,20 @@ export default async function RootLayout({
           />
         )}
       </head>
-      <body className="bg-[#f9f9f9] text-[#24292e] antialiased">
+      {/* FIX: Hintergrund auf Schwarz ändern und Text auf Weiß für Stealth-Look */}
+      <body className="bg-[#050505] text-white antialiased min-h-screen">
         <ThemeProvider>
-          {/* Status-Check für die Navbar */}
+          {/* Navbar steuert selbst, ob sie sich rendert */}
           <Navbar session={hasSession} />
 
-          {/* Der 5-Minuten Wächter (gemäß deiner Vorgabe) */}
+          {/* Der 5-Minuten Wächter */}
           <SessionGuard />
 
-          <main className="pt-20">{children}</main>
+          {/* WICHTIG: Das pt-20 darf im Admin/Login nicht stören. 
+              Da die Navbar dort 'null' liefert, ist der Platz oben frei.
+              Der Body-Background (#050505) füllt das jetzt pechschwarz aus.
+          */}
+          <main>{children}</main>
         </ThemeProvider>
       </body>
     </html>
