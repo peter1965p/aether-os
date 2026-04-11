@@ -213,7 +213,7 @@ export default async function HomePage() {
         {/* FOOTER */}
         <footer className="max-w-7xl mx-auto px-6 py-10 border-t border-white/5 text-center">
           <p className="text-zinc-800 font-mono text-[9px] uppercase tracking-[0.5em]">
-            &copy; 2026 AETHER OS // PAEFFGEN-IT // ALL RIGHTS RESERVED
+            &copy; 2026 AETHER OS // DPS // PAEFFGEN-IT // ALL RIGHTS RESERVED
           </p>
         </footer>
       </div>
