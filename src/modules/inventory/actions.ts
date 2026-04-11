@@ -799,3 +799,50 @@ export async function getSystemMetrics() {
   };
 }
 
+// Seiten Definition für CMS Funktion 
+
+export async function updateAetherPage(formData: FormData) {
+  const supabase = await createClient();
+  
+  const id = formData.get("page_id") as string;
+  const title = formData.get("title") as string;
+  const slug = formData.get("slug") as string;
+
+  // 1. Core Page Data Update
+  const { error: pageError } = await supabase
+    .from('pages')
+    .update({ 
+      title, 
+      slug, 
+      updated_at: new Date().toISOString() 
+    })
+    .eq('id', id);
+
+  if (pageError) throw new Error("Kernel Update Failed: Pages Table");
+
+  // 2. Section Data Update
+  // Wir loopen durch die Sektionen (die IDs kommen als Hidden Fields aus dem Form)
+  const sectionIds = formData.getAll("section_id") as string[];
+  
+  for (const sId of sectionIds) {
+    const sTitle = formData.get(`section_title_${sId}`) as string;
+    const sSubtitle = formData.get(`section_subtitle_${sId}`) as string;
+    const sContent = formData.get(`section_content_${sId}`) as string;
+    const sImageUrl = formData.get(`section_image_${sId}`) as string;
+
+    await supabase
+      .from('page_sections')
+      .update({
+        title: sTitle,
+        subtitle: sSubtitle,
+        content: sContent,
+        image_url: sImageUrl
+      })
+      .eq('id', sId);
+  }
+
+  revalidatePath("/admin/pages");
+  revalidatePath(`/${slug}`); // Damit die Änderungen im Frontend sofort sichtbar sind
+  
+  return;
+}
