@@ -1,242 +1,235 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
 import { 
-  Zap, ShieldCheck, TrendingUp, Cpu, 
-  RefreshCcw, Radio, Sparkles, Activity, Layers, Globe, BarChart3,
-  MapPin, Gift, Edit3, Save, Search, MousePointer2
+  Radio, BarChart3, Clock, Search, Wrench, Zap, 
+  Mail, Bot, RadioTower, ShieldCheck, Globe as GlobeIcon,
+  ChevronRight, Activity, Database, Terminal, Settings
 } from "lucide-react";
-import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip } from 'recharts';
-import { updateSEOKeywords, trackVisitor } from "@/modules/seo/seo.actions"; 
+import db from "@/lib/db";
+import { getGlobalMeta } from "@/lib/seo-bridge";
+import dynamic from "next/dynamic";
 
-export default function MissionControl() {
-  const [analyzing, setAnalyzing] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [lastEvent, setLastEvent] = useState("System Initialized // AETHER Kernel v2.4");
+/**
+ * AETHER OS // DYNAMIC COMPONENT LOADING
+ * Verhindert SSR-Fehler (Server Side Rendering) für die Weltkugel.
+ */
+const GeoRadarGlobe = dynamic(() => import("@/lib/geo-radar"), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-zinc-900/50 animate-pulse">
+      <span className="text-[10px] text-blue-500 font-black uppercase tracking-widest">
+        Initializing Orbital View...
+      </span>
+    </div>
+  )
+});
+
+/**
+ * AETHER OS // MISSION CONTROL // SEO & GEO INTELLIGENCE CENTER
+ */
+export default async function SeoGeoIntelPage() {
+  // CORE DATA FETCH
+  const meta = await getGlobalMeta();
   
-  // State für die Intelligence-Daten
-  const [targetKeywords, setTargetKeywords] = useState("IT Infrastructure, Field Operations, Next.js Development, NRW, AETHER OS");
-  const [visitorCount, setVisitorCount] = useState(0);
-
-  // Initialer Intelligence-Load & Tracking-Simulation
-  useEffect(() => {
-    // Simuliere einen Visit beim Laden der Mission Control
-    const initTracking = async () => {
-      await trackVisitor({
-        path: "/admin/seo",
-        referrer: "AETHER_INTERNAL_LINK",
-        ip: "127.0.0.1"
-      });
-      setVisitorCount(prev => prev + 1);
-    };
-    initTracking();
-  }, []);
-
-  const triggerManualSync = () => {
-    setAnalyzing(true);
-    // Hier könnte man getDbSchema rufen, um zu sehen ob visitor_logs existiert
-    setTimeout(() => {
-      setAnalyzing(false);
-      setLastEvent(`Manual Re-Sync: ${new Date().toLocaleTimeString()} // OK`);
-    }, 2500);
-  };
-
-  const handleSaveKeywords = async () => {
-    const kwArray = targetKeywords.split(",").map(k => k.trim());
-    const result = await updateSEOKeywords(kwArray);
-    if (result.success) {
-      setIsEditing(false);
-      setLastEvent("SEO Cluster synchronized with Intelligence Hub");
-    }
-  };
-
-  const trendData = [
-    { h: "Mo", v: 30 }, { h: "Di", v: 45 }, { h: "Mi", v: 40 }, 
-    { h: "Do", v: 75 }, { h: "Fr", v: 85 }, { h: "Sa", v: 92 }, { h: "So", v: 98 }
-  ];
+  const { data: recentLogs } = await db
+    .from("visitor_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(8);
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white p-4 md:p-12 space-y-10 pb-32 font-mono">
+    <div className="min-h-screen bg-[#05070a] text-white font-mono selection:bg-blue-500/30">
       
-      {/* 1. TOP BAR: SYSTEM STATUS */}
-      <div className="flex justify-between items-center bg-zinc-950/50 border border-white/5 p-6 rounded-[2rem] backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="w-3 h-3 bg-[#b33927] rounded-full animate-ping absolute" />
-            <div className="w-3 h-3 bg-[#b33927] rounded-full relative" />
+      {/* 1. TOP NAVIGATION BAR */}
+      <nav className="border-b border-white/5 bg-black/20 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-[1800px] mx-auto px-8 h-20 flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.4em]">AETHER OS // KERNEL</span>
+            </div>
+            <div className="h-4 w-px bg-white/10" />
+            <div className="flex items-center gap-4 text-zinc-500 text-[9px] uppercase tracking-widest">
+              <span className="text-blue-500/50">Admin</span>
+              <ChevronRight size={10} />
+              <span>Intelligence Hub</span>
+              <ChevronRight size={10} />
+              <span className="text-white">SEO & Geo Radar</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">AETHER Intelligence Core Active</span>
-            <span className="text-[8px] text-[#b33927] font-bold uppercase tracking-widest mt-1">SEO & GEO Module // Perpetual Edition</span>
+          
+          <div className="flex items-center gap-8">
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] text-zinc-600 uppercase">Uptime</span>
+              <span className="text-[10px] text-zinc-300">99.98%</span>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-400 p-px">
+              <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center">
+                <Settings size={14} className="text-white/50" />
+              </div>
+            </div>
           </div>
         </div>
-        <div className="hidden md:flex gap-8 text-[9px] font-mono text-zinc-600 uppercase">
-          <span className="flex items-center gap-2"><MapPin size={10} className="text-[#b33927]"/> Geo-Fence: {visitorCount > 0 ? 'STREAMING' : 'READY'}</span>
-          <span className="flex items-center gap-2 text-emerald-500"><Activity size={10}/> Kernel: Stable</span>
-        </div>
-      </div>
+      </nav>
 
-      {/* 2. MAIN INTELLIGENCE GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <main className="max-w-[1800px] mx-auto p-10">
         
-        {/* LEFT COLUMN */}
-        <div className="lg:col-span-8 space-y-10">
+        {/* HEADER SECTION */}
+        <header className="mb-16">
+          <div className="flex items-end gap-4 mb-4">
+            <h1 className="text-6xl font-black italic uppercase tracking-tighter leading-none">
+              Mission <span className="text-transparent bg-clip-text bg-gradient-to-b from-blue-500 to-indigo-700">Control.</span>
+            </h1>
+            <div className="mb-1 bg-blue-600/10 border border-blue-500/20 px-3 py-1 rounded-sm">
+              <span className="text-[9px] font-bold text-blue-500 uppercase tracking-widest">v3.4.0_STABLE</span>
+            </div>
+          </div>
+          <p className="text-zinc-500 text-xs uppercase tracking-[0.2em] max-w-2xl leading-relaxed">
+            Zentralisierte Steuerung der Sichtbarkeitsparameter und globale Besucher-Analytik. 
+            Automatisierte Injektion von KI-Kontexten in die Metadaten-Struktur.
+          </p>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* HERO DISPLAY */}
-          <div className="bg-gradient-to-br from-zinc-900 to-black border border-white/5 p-10 rounded-[3.5rem] relative overflow-hidden group">
-            <div className="relative z-10 space-y-6">
-              <div className="bg-[#b33927]/10 text-[#b33927] px-4 py-1 rounded-full text-[8px] font-black uppercase tracking-widest inline-flex items-center gap-2 border border-[#b33927]/20">
-                <Sparkles size={12}/> Auto-Adaptive SEO Enabled
-              </div>
-              <h1 className="text-4xl md:text-7xl font-black italic uppercase leading-tight tracking-tighter">
-                Sichtbarkeit <br />
-                <span className="text-[#b33927]">vollautomatisch.</span>
-              </h1>
-              <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest flex items-center gap-3">
-                <Activity size={14} className="text-[#b33927]" /> {lastEvent}
-              </p>
-            </div>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-[#b33927]/10 blur-[120px] rounded-full -mr-20 -mt-20 group-hover:bg-[#b33927]/20 transition-all duration-700" />
-          </div>
-
-          {/* PROJECTED GROWTH CHART */}
-          <div className="bg-zinc-950 border border-white/5 p-10 rounded-[3rem] space-y-8 relative overflow-hidden">
-            <div className="flex justify-between items-end relative z-10">
-              <div className="space-y-1">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 flex items-center gap-2">
-                  <BarChart3 size={14} /> 14-Day Visibility Forecast
-                </h3>
-              </div>
-              <span className="text-3xl font-black italic text-emerald-500">+42.8%</span>
-            </div>
-            <div className="h-64 w-full relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData}>
-                  <defs>
-                    <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#b33927" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#b33927" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(179,57,39,0.3)', borderRadius: '15px', fontSize: '10px', textTransform: 'uppercase' }}
-                  />
-                  <Area type="monotone" dataKey="v" stroke="#b33927" strokeWidth={5} fillOpacity={1} fill="url(#colorVal)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* KEYWORD CONFIGURATION PANEL */}
-          <div className="bg-black border border-[#b33927]/30 p-10 rounded-[3rem] relative group">
-            <div className="flex justify-between items-center mb-8">
-              <div className="space-y-1">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#b33927] flex items-center gap-2">
-                  <Search size={14} /> Global Meta Configuration
-                </h3>
-                <p className="text-[8px] text-zinc-600 font-mono uppercase">Update Intelligence Hub // Keyword_Cloud</p>
-              </div>
-              <button 
-                onClick={() => isEditing ? handleSaveKeywords() : setIsEditing(true)}
-                className={`text-[9px] font-black uppercase tracking-widest px-6 py-2 rounded-full transition-all flex items-center gap-2
-                  ${isEditing ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-[#b33927] text-white hover:scale-105 shadow-[0_0_15px_rgba(179,57,39,0.4)]'}`}
-              >
-                {isEditing ? <><Save size={12}/> Commit to Hub</> : <><Edit3 size={12}/> Edit Cluster</>}
-              </button>
-            </div>
-
-            {isEditing ? (
-              <div className="space-y-4">
-                <textarea 
-                  value={targetKeywords}
-                  onChange={(e) => setTargetKeywords(e.target.value)}
-                  className="w-full bg-[#050505] border border-white/10 rounded-2xl p-6 text-[11px] font-mono text-[#b33927] focus:border-[#b33927] outline-none h-32 transition-all"
-                  placeholder="IT Infrastructure, Cloud Services, NRW..."
-                />
-                <p className="text-[7px] text-zinc-700 font-mono italic uppercase text-center">Data will be persisted in public.intelligence_hub</p>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                {targetKeywords.split(",").map((k, i) => (
-                  <span key={i} className="bg-zinc-900 border border-white/5 px-4 py-2 rounded-xl text-[10px] font-mono text-zinc-400 uppercase hover:border-[#b33927]/50 transition-colors cursor-default">
-                    {k.trim()}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="lg:col-span-4 space-y-10">
-          
-          {/* VISITOR GEO STREAM (NEW) */}
-          <div className="bg-zinc-950 border border-white/5 p-8 rounded-[3rem] space-y-6">
-             <div className="flex justify-between items-center">
-                <h2 className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
-                  <Globe size={14} className="text-[#b33927]" /> Live Geo Ingest
-                </h2>
-                <span className="text-[9px] bg-white/5 px-2 py-1 rounded text-zinc-500 uppercase font-bold">Node: {visitorCount}</span>
-             </div>
-             <div className="h-40 bg-zinc-900/50 rounded-2xl border border-white/5 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-                <div className="relative text-center space-y-2">
-                   <MapPin size={24} className="text-[#b33927] mx-auto animate-bounce" />
-                   <p className="text-[8px] uppercase tracking-tighter text-zinc-400 font-bold">Region: NRW / Germany detected</p>
-                </div>
-             </div>
-          </div>
-
-          {/* LIVE PERFORMANCE LIST */}
-          <div className="bg-zinc-950 border border-white/5 p-8 rounded-[3rem] space-y-8">
-            <div className="flex justify-between items-center px-2">
-              <h2 className="text-sm font-black uppercase italic tracking-widest text-white">Live Keywords</h2>
-              <button onClick={triggerManualSync} className="p-2 hover:bg-white/5 rounded-full transition-colors group">
-                <RefreshCcw size={16} className={`${analyzing ? 'animate-spin text-[#b33927]' : 'text-zinc-600 group-hover:text-white'}`} />
-              </button>
-            </div>
+          {/* LEFT COLUMN: CONTROL INTERFACE (8 COLS) */}
+          <div className="lg:col-span-8 space-y-12">
             
-            <div className="space-y-3">
-              {[
-                { kw: "Managed Services IT", score: 98, trend: "up" },
-                { kw: "Cloud Security NRW", score: 94, trend: "up" },
-                { kw: "AETHER OS Deployment", score: 88, trend: "stable" },
-                { kw: "IT-Systemhaus 2026", score: 76, trend: "new" }
-              ].map((item) => (
-                <div key={item.kw} className="bg-white/[0.02] border border-white/5 p-5 rounded-[2rem] flex justify-between items-center group hover:bg-[#b33927]/5 hover:border-[#b33927]/20 transition-all duration-300">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-mono text-zinc-300 uppercase tracking-tighter">{item.kw}</span>
-                    <span className="text-[7px] text-zinc-600 font-bold uppercase tracking-widest">{item.trend === 'new' ? 'NEU ENTDECKT' : 'STABILER TREND'}</span>
+            <section className="bg-zinc-950/40 border border-white/5 p-10 rounded-[3.5rem] relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Database size={80} />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-10">
+                  <div className="p-3 bg-blue-600/10 rounded-2xl">
+                    <Search size={20} className="text-blue-500" />
                   </div>
-                  <span className="text-xs font-black text-[#b33927] italic">{item.score}%</span>
+                  <div>
+                    <h2 className="text-sm font-black uppercase tracking-widest text-white">SEO Master Registry</h2>
+                    <p className="text-[9px] text-zinc-600 uppercase tracking-tighter">Direct Database Override // Intelligence Hub</p>
+                  </div>
                 </div>
-              ))}
+
+                <div className="grid gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase text-zinc-500 tracking-[0.2em] ml-2">Dynamic SEO Title</label>
+                    <div className="bg-black/40 border border-white/5 p-6 rounded-3xl hover:border-blue-500/30 transition-all cursor-pointer">
+                      <span className="text-lg font-bold italic text-white/90">
+                        {meta?.seo_title_dynamic || "AETHER OS // NEXT-GEN INFRASTRUCTURE"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase text-zinc-500 tracking-[0.2em] ml-2">AI Agent Briefing Context</label>
+                    <div className="bg-black/40 border border-white/5 p-6 rounded-3xl hover:border-blue-500/30 transition-all cursor-pointer">
+                      <p className="text-sm text-zinc-400 leading-relaxed italic">
+                        {meta?.ai_context_briefing || "Definiere hier, wie KI-Crawler deine Infrastruktur verstehen sollen..."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="bg-zinc-950/40 border border-white/5 p-10 rounded-[3.5rem]">
+                <div className="flex items-center gap-3 mb-8">
+                  <Terminal size={18} className="text-blue-500" />
+                  <h3 className="text-xs font-black uppercase text-white tracking-widest">Active Keyword Cloud</h3>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {meta?.keyword_cloud?.map((kw: string) => (
+                    <div key={kw} className="bg-blue-600/5 border border-blue-500/10 px-4 py-2 rounded-xl text-[10px] text-blue-400 font-bold hover:bg-blue-600/10 transition-colors cursor-default">
+                      {kw}
+                    </div>
+                  )) || <div className="text-zinc-800 uppercase text-[10px]">Registry Empty</div>}
+                </div>
+              </div>
+
+              <div className="bg-zinc-950/40 border border-white/5 p-10 rounded-[3.5rem]">
+                <div className="flex items-center gap-3 mb-8">
+                  <Activity size={18} className="text-green-500" />
+                  <h3 className="text-xs font-black uppercase text-white tracking-widest">Ingest Stream</h3>
+                </div>
+                <div className="space-y-4">
+                  {recentLogs?.map((log: any) => (
+                    <div key={log.id} className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl group hover:bg-white/[0.04]">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-blue-500 font-bold truncate max-w-[120px]">{log.page_path}</span>
+                        <span className="text-[8px] text-zinc-600 uppercase">{new Date(log.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="text-[10px] font-mono text-zinc-400 italic">
+                        {new Date(log.created_at).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* AI MARKET INTEL */}
-          <div className="bg-[#b33927] p-8 rounded-[3rem] space-y-6 shadow-[0_25px_50px_rgba(179,57,39,0.25)] relative overflow-hidden group">
-            <div className="relative z-10">
-              <h3 className="text-sm font-black uppercase italic tracking-widest text-white flex items-center gap-2">
-                <Radio size={16} className="animate-pulse" /> Market Intel
-              </h3>
-              <p className="text-[10px] font-mono text-white/90 leading-relaxed uppercase tracking-wider mt-4">
-                Hohes Suchvolumen für <span className="text-black bg-white px-1">"Resiliente IT-Infrastruktur"</span> erkannt. 
-                Metadaten wurden automatisch für KI-Crawler optimiert.
-              </p>
+          {/* RIGHT COLUMN: GEO-RADAR (4 COLS) */}
+          <div className="lg:col-span-4 space-y-12">
+            
+            <div className="bg-zinc-950/60 border border-white/5 p-10 rounded-[4rem] flex flex-col items-center">
+              <div className="w-full flex justify-between items-center mb-10">
+                <h2 className="text-xs font-black uppercase text-white tracking-[0.2em] flex items-center gap-2">
+                  <Radio size={16} className="text-blue-600 animate-pulse" /> Live Geo Radar
+                </h2>
+                <div className="bg-white/5 px-3 py-1 rounded-full text-[8px] font-black text-zinc-500 uppercase">
+                  Realtime
+                </div>
+              </div>
+
+              {/* DYNAMIC GLOBE - JETZT MIT SSR: FALSE */}
+              <div className="w-full h-[32rem] bg-zinc-900/30 rounded-[3rem] border border-white/5 relative overflow-hidden group shadow-inner">
+                <GeoRadarGlobe />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+              </div>
+
+              <div className="mt-8 w-full p-6 bg-blue-600/5 border border-blue-500/10 rounded-3xl">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase">Active Nodes</span>
+                  <span className="text-[10px] font-black text-blue-500">12</span>
+                </div>
+                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div className="w-[65%] h-full bg-blue-600" />
+                </div>
+              </div>
             </div>
-            <Zap className="absolute -bottom-4 -right-4 text-white/10 w-24 h-24 rotate-12" />
+
+            <div className="bg-gradient-to-br from-blue-700 to-indigo-900 p-10 rounded-[4rem] shadow-2xl relative overflow-hidden group border border-white/10">
+              <div className="relative z-10">
+                <h3 className="text-lg font-black italic uppercase text-white flex items-center gap-3 mb-8">
+                  <RadioTower size={24} className="animate-bounce" /> Intel Hub
+                </h3>
+                
+                <div className="space-y-4">
+                  {[
+                    { title: "Infrastructure Score", val: "98.2" },
+                    { title: "SEO Market Reach", val: "High" },
+                    { title: "Node Stability", val: "Optimal" }
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-black/30 backdrop-blur-md p-5 rounded-3xl border border-white/10 flex justify-between items-center group-hover:translate-x-1 transition-transform">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">{stat.title}</span>
+                      <span className="text-xs font-black text-white italic">{stat.val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="absolute -bottom-10 -right-10 opacity-10 rotate-12 group-hover:scale-110 transition-transform">
+                <GlobeIcon size={200} />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* FOOTER LOG */}
-      <div className="bg-zinc-950/30 border border-white/5 p-8 rounded-[2.5rem] flex flex-wrap gap-12 items-center justify-center text-[8px] font-mono text-zinc-500 uppercase tracking-[0.2em] backdrop-blur-sm">
-        <div className="flex items-center gap-3 hover:text-white transition-colors cursor-default"><Layers size={14} className="text-[#b33927]"/> Sitemap Updated</div>
-        <div className="flex items-center gap-3 hover:text-white transition-colors cursor-default"><Globe size={14} className="text-[#b33927]"/> Google Index Ping: OK</div>
-        <div className="flex items-center gap-3 hover:text-white transition-colors cursor-default"><ShieldCheck size={14} className="text-[#b33927]"/> JSON-LD Schema: Valid</div>
-        <div className="flex items-center gap-3 hover:text-white transition-colors cursor-default"><Cpu size={14} className="text-[#b33927]"/> AI-Parser: Synced</div>
-      </div>
+      <footer className="border-t border-white/5 mt-20 py-10 px-10 text-center">
+        <p className="text-[9px] text-zinc-800 font-black uppercase tracking-[1em]">
+          AETHER OS // SYSTEM_KERNEL_ACCESS_GRANTED // 2026
+        </p>
+      </footer>
     </div>
   );
 }
