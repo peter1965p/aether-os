@@ -41,29 +41,30 @@ export async function getDbSchema() {
 export async function executeSql(query: string) {
   try {
     const cleanQuery = query.trim();
-    const isSelect = cleanQuery.toUpperCase().startsWith('SELECT');
     
-    // Da Supabase kein direktes "Raw SQL" erlaubt, extrahieren wir den Tabellennamen
-    // für einfache SELECT-Statements:
-    if (isSelect) {
-      const match = cleanQuery.match(/FROM\s+([\w\.]+)/i);
-      const tableName = match ? match[1].replace('public.', '') : null;
-
-      if (tableName) {
-        const { data, error } = await db.from(tableName).select('*').limit(100);
-        if (error) throw error;
-        return { success: true, data };
-      }
-    }
-
-    // Für komplexe Queries oder UPDATE/DELETE nutzen wir den Supabase RPC "exec_sql"
-    // Du musst diese Funktion einmalig in Supabase im SQL Editor anlegen!
-    const { data, error } = await db.rpc('exec_sql', { sql_query: query });
+    // Wir schicken ALLES direkt an den RPC 'exec_sql'
+    const { data, error } = await db.rpc('exec_sql', { sql_query: cleanQuery });
+    
+    // Falls der RPC selbst einen Fehler wirft (Verbindung etc.)
     if (error) throw error;
 
-    return { success: true, data: Array.isArray(data) ? data : [data] };
+    // Falls die SQL-Funktion intern einen Fehler gefangen hat (Syntax-Fehler im SQL)
+    // Wir prüfen hier auf 'data', weil unsere PL/pgSQL Funktion ein Objekt mit {error: ...} zurückgibt
+    if (data && data.error) {
+      throw new Error(data.error); // Hier war der Fehler: data.error statt err.error
+    }
+
+    return { 
+      success: true, 
+      data: Array.isArray(data) ? data : [data] 
+    };
   } catch (error: any) {
-    return { success: false, error: error.message, data: [] };
+    console.error("KERNEL_SQL_CRITICAL:", error);
+    return { 
+      success: false, 
+      error: error.message || "Unknown Database Error", 
+      data: [] 
+    };
   }
 }
 
