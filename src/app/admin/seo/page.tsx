@@ -9,18 +9,18 @@ import {
 import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip } from 'recharts';
 import { updateSEOKeywords, trackVisitor } from "@/modules/seo/seo.actions"; 
 
+// WICHTIG: Der dynamische Import der Weltkugel
+import GeoRadarWrapper from "@/components/admin/GeoRadarWrapper";
+
 export default function MissionControl() {
   const [analyzing, setAnalyzing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [lastEvent, setLastEvent] = useState("System Initialized // AETHER Kernel v2.4");
   
-  // State für die Intelligence-Daten
   const [targetKeywords, setTargetKeywords] = useState("IT Infrastructure, Field Operations, Next.js Development, NRW, AETHER OS");
   const [visitorCount, setVisitorCount] = useState(0);
 
-  // Initialer Intelligence-Load & Tracking-Simulation
   useEffect(() => {
-    // Simuliere einen Visit beim Laden der Mission Control
     const initTracking = async () => {
       await trackVisitor({
         path: "/admin/seo",
@@ -34,7 +34,6 @@ export default function MissionControl() {
 
   const triggerManualSync = () => {
     setAnalyzing(true);
-    // Hier könnte man getDbSchema rufen, um zu sehen ob visitor_logs existiert
     setTimeout(() => {
       setAnalyzing(false);
       setLastEvent(`Manual Re-Sync: ${new Date().toLocaleTimeString()} // OK`);
@@ -170,19 +169,22 @@ export default function MissionControl() {
         {/* RIGHT COLUMN */}
         <div className="lg:col-span-4 space-y-10">
           
-          {/* VISITOR GEO STREAM (NEW) */}
+          {/* VISITOR GEO STREAM // JETZT MIT WELTKUGEL */}
           <div className="bg-zinc-950 border border-white/5 p-8 rounded-[3rem] space-y-6">
-             <div className="flex justify-between items-center">
+             <div className="flex justify-between items-center px-2">
                 <h2 className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
                   <Globe size={14} className="text-[#b33927]" /> Live Geo Ingest
                 </h2>
                 <span className="text-[9px] bg-white/5 px-2 py-1 rounded text-zinc-500 uppercase font-bold">Node: {visitorCount}</span>
              </div>
-             <div className="h-40 bg-zinc-900/50 rounded-2xl border border-white/5 flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-                <div className="relative text-center space-y-2">
-                   <MapPin size={24} className="text-[#b33927] mx-auto animate-bounce" />
-                   <p className="text-[8px] uppercase tracking-tighter text-zinc-400 font-bold">Region: NRW / Germany detected</p>
+             
+             {/* Die Weltkugel-Komponente ersetzt den alten statischen Block */}
+             <div className="h-80 bg-zinc-900/50 rounded-[2.5rem] border border-white/5 relative overflow-hidden group shadow-inner">
+                <GeoRadarWrapper />
+                
+                {/* Overlay für den technischen Look */}
+                <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 border border-white/5 rounded text-[7px] text-zinc-500 font-mono uppercase pointer-events-none">
+                  Orbital_Track_Enabled
                 </div>
              </div>
           </div>
