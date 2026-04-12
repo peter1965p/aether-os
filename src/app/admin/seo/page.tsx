@@ -4,22 +4,41 @@ import React, { useState, useEffect } from "react";
 import { 
   Zap, ShieldCheck, TrendingUp, Cpu, 
   RefreshCcw, Radio, Sparkles, Activity, Layers, Globe, BarChart3,
-  MapPin, Gift, Edit3, Save, Search
+  MapPin, Gift, Edit3, Save, Search, MousePointer2
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip } from 'recharts';
-import { updateSEOKeywords } from "@/modules/seo/seo.actions"; // Pfad ggf. anpassen
+import { updateSEOKeywords, trackVisitor } from "@/modules/seo/seo.actions"; 
 
 export default function MissionControl() {
   const [analyzing, setAnalyzing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [lastEvent, setLastEvent] = useState("Blog Post: 'Cyber-Security 2026'");
+  const [lastEvent, setLastEvent] = useState("System Initialized // AETHER Kernel v2.4");
   
-  // States für die Keyword-Konfiguration
+  // State für die Intelligence-Daten
   const [targetKeywords, setTargetKeywords] = useState("IT Infrastructure, Field Operations, Next.js Development, NRW, AETHER OS");
+  const [visitorCount, setVisitorCount] = useState(0);
+
+  // Initialer Intelligence-Load & Tracking-Simulation
+  useEffect(() => {
+    // Simuliere einen Visit beim Laden der Mission Control
+    const initTracking = async () => {
+      await trackVisitor({
+        path: "/admin/seo",
+        referrer: "AETHER_INTERNAL_LINK",
+        ip: "127.0.0.1"
+      });
+      setVisitorCount(prev => prev + 1);
+    };
+    initTracking();
+  }, []);
 
   const triggerManualSync = () => {
     setAnalyzing(true);
-    setTimeout(() => setAnalyzing(false), 2500);
+    // Hier könnte man getDbSchema rufen, um zu sehen ob visitor_logs existiert
+    setTimeout(() => {
+      setAnalyzing(false);
+      setLastEvent(`Manual Re-Sync: ${new Date().toLocaleTimeString()} // OK`);
+    }, 2500);
   };
 
   const handleSaveKeywords = async () => {
@@ -27,6 +46,7 @@ export default function MissionControl() {
     const result = await updateSEOKeywords(kwArray);
     if (result.success) {
       setIsEditing(false);
+      setLastEvent("SEO Cluster synchronized with Intelligence Hub");
     }
   };
 
@@ -36,7 +56,7 @@ export default function MissionControl() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white p-4 md:p-12 space-y-10 pb-32">
+    <div className="min-h-screen bg-[#030303] text-white p-4 md:p-12 space-y-10 pb-32 font-mono">
       
       {/* 1. TOP BAR: SYSTEM STATUS */}
       <div className="flex justify-between items-center bg-zinc-950/50 border border-white/5 p-6 rounded-[2rem] backdrop-blur-md">
@@ -47,12 +67,12 @@ export default function MissionControl() {
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">AETHER Intelligence Core Active</span>
-            <span className="text-[8px] text-[#b33927] font-bold uppercase tracking-widest mt-1">SEO & GEO Module // Perpetual Free Edition</span>
+            <span className="text-[8px] text-[#b33927] font-bold uppercase tracking-widest mt-1">SEO & GEO Module // Perpetual Edition</span>
           </div>
         </div>
         <div className="hidden md:flex gap-8 text-[9px] font-mono text-zinc-600 uppercase">
-          <span className="flex items-center gap-2"><MapPin size={10} className="text-[#b33927]"/> Geo-Fence: Active</span>
-          <span className="flex items-center gap-2"><Gift size={10} className="text-emerald-500"/> Core Status: Free</span>
+          <span className="flex items-center gap-2"><MapPin size={10} className="text-[#b33927]"/> Geo-Fence: {visitorCount > 0 ? 'STREAMING' : 'READY'}</span>
+          <span className="flex items-center gap-2 text-emerald-500"><Activity size={10}/> Kernel: Stable</span>
         </div>
       </div>
 
@@ -73,7 +93,7 @@ export default function MissionControl() {
                 <span className="text-[#b33927]">vollautomatisch.</span>
               </h1>
               <p className="text-zinc-500 font-mono text-xs uppercase tracking-widest flex items-center gap-3">
-                <Activity size={14} className="text-[#b33927]" /> Letzter Trigger: {lastEvent}
+                <Activity size={14} className="text-[#b33927]" /> {lastEvent}
               </p>
             </div>
             <div className="absolute top-0 right-0 w-96 h-96 bg-[#b33927]/10 blur-[120px] rounded-full -mr-20 -mt-20 group-hover:bg-[#b33927]/20 transition-all duration-700" />
@@ -107,21 +127,21 @@ export default function MissionControl() {
             </div>
           </div>
 
-          {/* 3. NEW: KEYWORD CONFIGURATION PANEL (THE MISSING LINK) */}
+          {/* KEYWORD CONFIGURATION PANEL */}
           <div className="bg-black border border-[#b33927]/30 p-10 rounded-[3rem] relative group">
             <div className="flex justify-between items-center mb-8">
               <div className="space-y-1">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#b33927] flex items-center gap-2">
                   <Search size={14} /> Global Meta Configuration
                 </h3>
-                <p className="text-[8px] text-zinc-600 font-mono uppercase">Definiere die Keywords für KIs und Suchmaschinen</p>
+                <p className="text-[8px] text-zinc-600 font-mono uppercase">Update Intelligence Hub // Keyword_Cloud</p>
               </div>
               <button 
                 onClick={() => isEditing ? handleSaveKeywords() : setIsEditing(true)}
                 className={`text-[9px] font-black uppercase tracking-widest px-6 py-2 rounded-full transition-all flex items-center gap-2
-                  ${isEditing ? 'bg-emerald-600 text-white' : 'bg-[#b33927] text-white hover:scale-105'}`}
+                  ${isEditing ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-[#b33927] text-white hover:scale-105 shadow-[0_0_15px_rgba(179,57,39,0.4)]'}`}
               >
-                {isEditing ? <><Save size={12}/> Sync Metadata</> : <><Edit3 size={12}/> Edit Cluster</>}
+                {isEditing ? <><Save size={12}/> Commit to Hub</> : <><Edit3 size={12}/> Edit Cluster</>}
               </button>
             </div>
 
@@ -133,12 +153,12 @@ export default function MissionControl() {
                   className="w-full bg-[#050505] border border-white/10 rounded-2xl p-6 text-[11px] font-mono text-[#b33927] focus:border-[#b33927] outline-none h-32 transition-all"
                   placeholder="IT Infrastructure, Cloud Services, NRW..."
                 />
-                <p className="text-[7px] text-zinc-700 font-mono italic uppercase text-center">Tippe Keywords getrennt durch Komma ein.</p>
+                <p className="text-[7px] text-zinc-700 font-mono italic uppercase text-center">Data will be persisted in public.intelligence_hub</p>
               </div>
             ) : (
               <div className="flex flex-wrap gap-3">
                 {targetKeywords.split(",").map((k, i) => (
-                  <span key={i} className="bg-zinc-900 border border-white/5 px-4 py-2 rounded-xl text-[10px] font-mono text-zinc-400 uppercase">
+                  <span key={i} className="bg-zinc-900 border border-white/5 px-4 py-2 rounded-xl text-[10px] font-mono text-zinc-400 uppercase hover:border-[#b33927]/50 transition-colors cursor-default">
                     {k.trim()}
                   </span>
                 ))}
@@ -150,6 +170,23 @@ export default function MissionControl() {
         {/* RIGHT COLUMN */}
         <div className="lg:col-span-4 space-y-10">
           
+          {/* VISITOR GEO STREAM (NEW) */}
+          <div className="bg-zinc-950 border border-white/5 p-8 rounded-[3rem] space-y-6">
+             <div className="flex justify-between items-center">
+                <h2 className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
+                  <Globe size={14} className="text-[#b33927]" /> Live Geo Ingest
+                </h2>
+                <span className="text-[9px] bg-white/5 px-2 py-1 rounded text-zinc-500 uppercase font-bold">Node: {visitorCount}</span>
+             </div>
+             <div className="h-40 bg-zinc-900/50 rounded-2xl border border-white/5 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+                <div className="relative text-center space-y-2">
+                   <MapPin size={24} className="text-[#b33927] mx-auto animate-bounce" />
+                   <p className="text-[8px] uppercase tracking-tighter text-zinc-400 font-bold">Region: NRW / Germany detected</p>
+                </div>
+             </div>
+          </div>
+
           {/* LIVE PERFORMANCE LIST */}
           <div className="bg-zinc-950 border border-white/5 p-8 rounded-[3rem] space-y-8">
             <div className="flex justify-between items-center px-2">
@@ -163,8 +200,8 @@ export default function MissionControl() {
               {[
                 { kw: "Managed Services IT", score: 98, trend: "up" },
                 { kw: "Cloud Security NRW", score: 94, trend: "up" },
-                { kw: "Cyber-Defense KMU", score: 88, trend: "stable" },
-                { kw: "IT-Systemhaus Luxemburg", score: 76, trend: "new" }
+                { kw: "AETHER OS Deployment", score: 88, trend: "stable" },
+                { kw: "IT-Systemhaus 2026", score: 76, trend: "new" }
               ].map((item) => (
                 <div key={item.kw} className="bg-white/[0.02] border border-white/5 p-5 rounded-[2rem] flex justify-between items-center group hover:bg-[#b33927]/5 hover:border-[#b33927]/20 transition-all duration-300">
                   <div className="flex flex-col gap-1">
@@ -184,14 +221,9 @@ export default function MissionControl() {
                 <Radio size={16} className="animate-pulse" /> Market Intel
               </h3>
               <p className="text-[10px] font-mono text-white/90 leading-relaxed uppercase tracking-wider mt-4">
-                Hohes Suchvolumen für <span className="text-black bg-white px-1">"Resiliente IT-Infrastruktur"</span> in deiner Region erkannt. 
+                Hohes Suchvolumen für <span className="text-black bg-white px-1">"Resiliente IT-Infrastruktur"</span> erkannt. 
                 Metadaten wurden automatisch für KI-Crawler optimiert.
               </p>
-              <div className="pt-6">
-                <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-white w-3/4 animate-pulse" />
-                </div>
-              </div>
             </div>
             <Zap className="absolute -bottom-4 -right-4 text-white/10 w-24 h-24 rotate-12" />
           </div>

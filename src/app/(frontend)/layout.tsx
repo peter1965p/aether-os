@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import db from "@/lib/db";
 import Navbar from "@/components/layout/frontend/bar/Navbar";
 import Footer from "@/components/layout/frontend/footer/Footer";
-import Tracker from "@/components/Tracker";
+import Tracker from "@/components/VisitorTracker";
 import {
   Inter,
   Bebas_Neue,

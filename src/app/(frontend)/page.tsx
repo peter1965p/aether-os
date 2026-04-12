@@ -4,24 +4,23 @@ import {
   ExternalLink, Box, Layers, Cpu
 } from "lucide-react";
 import db from "@/lib/db";
+import { getGlobalMeta } from "@/lib/seo-bridge";
+import VisitorTracker from "@/components/VisitorTracker";
 
 /**
  * AETHER OS // DYNAMISCHE METADATEN (SEO & KI OPTIMIERUNG)
+ * Zieht Daten jetzt direkt aus dem Intelligence Hub Kernel.
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const { data: seo } = await db
-    .from("site_settings")
-    .select("value")
-    .eq("key", "homepage_seo")
-    .single();
+  const meta = await getGlobalMeta();
 
-  const title = seo?.value?.title || "PAEFFGEN IT // AETHER OS - Next-Gen Infrastructure";
-  const description = seo?.value?.description || "Spezialisiert auf hochperformante Dashboards und kritische Hardware-Infrastrukturen in NRW, RLP und Luxemburg.";
+  const title = meta?.seo_title_dynamic || "PAEFFGEN IT // AETHER OS - Next-Gen Infrastructure";
+  const description = meta?.seo_desc_dynamic || "Spezialisiert auf hochperformante Dashboards und kritische Hardware-Infrastrukturen in NRW, RLP und Luxemburg.";
 
   return {
     title,
     description,
-    keywords: seo?.value?.keywords || ["IT Infrastructure", "Field Operations", "Next.js Development", "NRW", "AETHER OS"],
+    keywords: meta?.keyword_cloud || ["IT Infrastructure", "Field Operations", "Next.js Development", "NRW", "AETHER OS"],
     authors: [{ name: "Peter Paeffgen" }],
     openGraph: {
       title,
@@ -34,12 +33,14 @@ export async function generateMetadata(): Promise<Metadata> {
       index: true,
       follow: true,
     },
+    other: {
+      "ai-agent-context": meta?.last_event_trigger || "Operational Mode"
+    }
   };
 }
 
 export default async function HomePage() {
   /* --- AETHER OS: CORE DATA FETCH --- */
-  // Wir holen die Produkte genau so, wie sie in deinem Screenshot angezeigt werden
   const { data: products } = await db
     .from("products")
     .select(`*, categories (name)`)
@@ -76,7 +77,11 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="min-h-screen bg-[#05070a] text-white font-sans selection:bg-blue-500/30">
+      {/* AETHER OS TRACKING HIVE */}
+      <VisitorTracker />
+
+      {/* FIXED: font-sans entfernt, nur font-mono für konsistenten Look */}
+      <div className="min-h-screen bg-[#05070a] text-white selection:bg-blue-500/30 font-mono">
         
         {/* 1. HERO SECTION */}
         <section className="max-w-7xl mx-auto px-6 py-24 border-b border-white/5">
@@ -101,7 +106,7 @@ export default async function HomePage() {
             </div>
 
             <div className="max-w-md lg:text-right border-l lg:border-l-0 lg:border-r border-blue-600/30 pl-6 lg:pr-6 py-2">
-              <p className="text-slate-500 font-mono text-[10px] uppercase leading-relaxed tracking-tighter text-[9px]">
+              <p className="text-slate-500 text-[9px] uppercase leading-relaxed tracking-tighter">
                 Spezialisiert auf hochperformante Dashboards und kritische Hardware-Infrastrukturen. Verbindung von über 25 Jahren Onsite-Expertise mit moderner Fullstack-Entwicklung.
               </p>
             </div>
@@ -110,7 +115,7 @@ export default async function HomePage() {
 
         {/* 2. PRODUCT SHOWCASE */}
         <section id="aether-os" className="max-w-7xl mx-auto px-6 py-16 border-x border-white/5 bg-gradient-to-b from-blue-600/[0.03] to-transparent">
-          <h2 className="text-sm font-mono font-bold uppercase text-blue-500 mb-12 tracking-[0.2em]">LATEST <span className="text-orange-500 uppercase">Modules</span> // REGISTRY</h2>
+          <h2 className="text-sm font-mono font-bold uppercase text-blue-500 mb-12 tracking-[0.2em]">LATEST <span className="text-orange-500">Modules</span> // REGISTRY</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {products?.map((p: any) => (
               <div key={p.id} className="bg-zinc-900/50 border border-white/5 p-8 rounded-sm hover:border-blue-500/50 transition-all group">
@@ -139,7 +144,7 @@ export default async function HomePage() {
               <h2 className="text-3xl font-black italic uppercase mb-6 leading-none text-white">
                 THE <span className="text-blue-600">ENGINE</span> <br/> BEHIND AETHER.
               </h2>
-              <p className="text-slate-400 font-mono text-[10px] leading-relaxed uppercase">
+              <p className="text-slate-400 text-[10px] leading-relaxed uppercase">
                 Vollständig modularer Aufbau basierend auf dem Next.js App-Router. Sicherheit durch serverseitige Validierung und Supabase-Integration.
               </p>
             </div>
@@ -152,7 +157,7 @@ export default async function HomePage() {
                 { label: "Backend", title: "Supabase Cloud", desc: "PostgreSQL mit Realtime-Features für Live-Updates im Dashboard-Status." }
               ].map((tech, i) => (
                 <div key={i} className="bg-[#05070a] p-8 hover:bg-blue-600/[0.04] transition-colors border-r border-b border-white/5">
-                  <span className="text-[9px] font-mono text-blue-500 tracking-[0.2em] uppercase">{tech.label}</span>
+                  <span className="text-[9px] text-blue-500 tracking-[0.2em] uppercase">{tech.label}</span>
                   <h4 className="text-sm font-bold mt-2 mb-3 uppercase tracking-widest text-white">{tech.title}</h4>
                   <p className="text-slate-500 text-[11px] leading-relaxed italic">{tech.desc}</p>
                 </div>
@@ -170,7 +175,7 @@ export default async function HomePage() {
           ].map((item, i) => (
             <div key={i} className="p-12 border-r border-b border-white/5 hover:bg-white/[0.02] transition-all group last:border-r-0">
               <div className="text-blue-500 mb-6 group-hover:scale-110 transition-transform">{item.icon}</div>
-              <h3 className="text-sm font-mono font-bold uppercase tracking-widest mb-4">{item.title}</h3>
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-4">{item.title}</h3>
               <p className="text-slate-500 text-[11px] leading-relaxed uppercase tracking-tighter">{item.desc}</p>
             </div>
           ))}
@@ -191,7 +196,7 @@ export default async function HomePage() {
         <section className="max-w-7xl mx-auto px-6 py-24 flex flex-col md:flex-row gap-16 items-center border-x border-white/5">
           <div className="flex-1">
             <h2 className="text-3xl font-black italic uppercase mb-8">SERVICE <span className="text-blue-600">REGIONS</span></h2>
-            <div className="grid grid-cols-2 gap-3 font-mono text-[10px] text-slate-400">
+            <div className="grid grid-cols-2 gap-3 text-[10px] text-slate-400">
               {["NRW", "RLP", "SAARLAND", "HESSEN", "LUXEMBURG"].map(region => (
                 <div key={region} className="flex items-center gap-3 border border-white/5 p-4 rounded-sm bg-zinc-900/20 hover:border-blue-500/30 transition-colors">
                   <MapPin size={12} className="text-blue-500" /> {region} // ACTIVE ZONE
@@ -201,10 +206,10 @@ export default async function HomePage() {
           </div>
           
           <div className="flex-1 bg-blue-600/5 border border-blue-500/20 p-10 rounded-sm relative overflow-hidden bg-[#05070a]">
-            <div className="absolute top-0 right-0 p-2 font-mono text-[8px] bg-blue-600 text-white uppercase italic tracking-widest">Available May 2026</div>
-            <h3 className="text-xs font-mono font-bold uppercase mb-6 text-blue-500 tracking-widest text-[9px]">CURRENT STATUS // RECRUITING OPEN</h3>
+            <div className="absolute top-0 right-0 p-2 text-[8px] bg-blue-600 text-white uppercase italic tracking-widest">Available May 2026</div>
+            <h3 className="text-xs font-bold uppercase mb-6 text-blue-500 tracking-widest text-[9px]">CURRENT STATUS // RECRUITING OPEN</h3>
             <p className="text-sm text-slate-300 leading-relaxed italic mb-8">"Nach erfolgreichem Abschluss der Onsite-Projekte für RWE & E.ON stehe ich ab Mai 2026 für neue Herausforderungen zur Verfügung."</p>
-            <a href="/impressum" className="group flex items-center gap-3 font-mono text-[11px] text-white uppercase tracking-widest border-b border-blue-500 w-fit pb-2 hover:text-blue-400 transition-all">
+            <a href="/impressum" className="group flex items-center gap-3 text-[11px] text-white uppercase tracking-widest border-b border-blue-500 w-fit pb-2 hover:text-blue-400 transition-all">
               PROJEKT ANFRAGE SENDEN <ExternalLink size={12} className="group-hover:translate-x-1 transition-transform" />
             </a>
           </div>
@@ -212,7 +217,7 @@ export default async function HomePage() {
 
         {/* FOOTER */}
         <footer className="max-w-7xl mx-auto px-6 py-10 border-t border-white/5 text-center">
-          <p className="text-zinc-800 font-mono text-[9px] uppercase tracking-[0.5em]">
+          <p className="text-zinc-800 text-[9px] uppercase tracking-[0.5em]">
             &copy; 2026 AETHER OS // DPS // PAEFFGEN-IT // ALL RIGHTS RESERVED
           </p>
         </footer>
