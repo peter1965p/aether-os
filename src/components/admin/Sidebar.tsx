@@ -19,6 +19,7 @@ interface SidebarItem {
   separator?: boolean; // Zieht eine Linie ÜBER dem Item
   isFree?: boolean;    // Schaltet das grüne FREE Badge an
   isPaid?: boolean;    // Schaltet das rote PAID Badge an
+  isInclude?: boolean;   // Schaltet das gelbe Include Badge an
 }
 
 export default function Sidebar({ userSettings }: { userSettings?: any }) {
@@ -27,15 +28,15 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
 
   // 2. MODUL-KONFIGURATION (Jetzt völlig frei einsetzbar)
   const sidebarItems: SidebarItem[] = [
-    { id: 'dashboard', label: 'Dashboard', href: '/admin', icon: Home },
-    { id: 'blog', label: 'Blog Edit', href: '/admin/blog', icon: FileText, isFree: true },
-    { id: 'DPS', label: 'DPS Dynamic Pages', href: '/admin/pages', icon: AppWindow },
-    { id: 'comments', label: 'Kommentare', href: '/admin/comments', icon: MessageSquareText, isFree: true },
-    { id: 'categories', label: 'Kategorien', href: '/admin/categories', icon: Layers, isFree: true },
+    { id: 'dashboard', label: 'Dashboard', href: '/admin', icon: Home, isInclude: true },
+    { id: 'blog', label: 'Blog Edit', href: '/admin/blog', icon: FileText, isInclude: true },
+    { id: 'DPS', label: 'DPS Dynamic Pages', href: '/admin/pages', icon: AppWindow, isPaid: true },
+    { id: 'comments', label: 'Kommentare', href: '/admin/comments', icon: MessageSquareText, isInclude: true },
+    { id: 'categories', label: 'Kategorien', href: '/admin/categories', icon: Layers, isInclude: true },
     
     { id: 'inventory', label: 'Inventory', href: '/admin/inventory', icon: Box, separator: true, isPaid: true },
     { id: 'projects', label: 'Projects', href: '/admin/projects', icon: FolderKanban, isPaid: true },
-    { id: 'staff', label: 'Mitarbeiter', href: '/admin/users', icon: UserCheck },
+    { id: 'staff', label: 'Mitarbeiter', href: '/admin/users', icon: UserCheck, isInclude: true },
     { id: 'customers', label: 'Kunden', href: '/admin/customers', icon: Users, isPaid: true }, // Beispiel: Kunden jetzt Paid
     { id: 'suppliers', label: 'Lieferanten', href: '/admin/suppliers', icon: Truck, isPaid: true },
     
@@ -49,7 +50,7 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
     { id: 'message', label: 'Message Center', href: '/admin/message', icon: Mail, separator: true, isPaid: true },
     { id: 'news', label: 'News Center', href: '/admin/news', icon: Zap, isFree: true }, 
     { id: 'forms', label: 'Formular Center', href: '/admin/forms', icon: ClipboardList, isFree: true },
-    { id: 'modules', label: 'Module Ecosystem', href: '/admin/modules', icon: Settings },
+    { id: 'modules', label: 'Module Ecosystem', href: '/admin/modules', icon: Settings, isInclude: true },
     { id: 'db', label: 'Database', href: '/admin/db', icon: Database, isPaid: true },
   ];
 
@@ -105,6 +106,11 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
                       {item.isPaid && (
                         <span className="text-[7px] font-bold bg-red-800 text-white px-1.5 py-0.5 rounded-sm animate-pulse shadow-[0_0_8px_rgba(153,27,27,0.4)]">
                           PAID
+                        </span>
+                      )}
+                       {item.isInclude && (
+                        <span className="text-[7px] font-bold bg-yellow-400 text-white px-1.5 py-0.5 rounded-sm animate-pulse shadow-[0_0_8px_rgba(22,163,74,0.4)]">
+                          INCL
                         </span>
                       )}
                     </div>
