@@ -109,7 +109,7 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
                         </span>
                       )}
                        {item.isInclude && (
-                        <span className="text-[7px] font-bold bg-yellow-400 text-white px-1.5 py-0.5 rounded-sm animate-pulse shadow-[0_0_8px_rgba(22,163,74,0.4)]">
+                        <span className="text-[7px] font-bold bg-yellow-400 text-slate-600 px-1.5 py-0.5 rounded-sm animate-pulse shadow-[0_0_8px_rgba(22,163,74,0.4)]">
                           INCL
                         </span>
                       )}
