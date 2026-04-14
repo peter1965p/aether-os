@@ -4,12 +4,13 @@ import React, { useState, useEffect } from "react";
 import { 
   Zap, ShieldCheck, TrendingUp, Cpu, 
   RefreshCcw, Radio, Sparkles, Activity, Layers, Globe, BarChart3,
-  MapPin, Gift, Edit3, Save, Search, MousePointer2
+  MapPin, Edit3, Save, Search, RadioTower
 } from "lucide-react";
-import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, Tooltip } from 'recharts';
 import { updateSEOKeywords, trackVisitor } from "@/modules/seo/seo.actions"; 
+import { getLatestMarketIntel } from "@/modules/market/market.actions";
 
-// WICHTIG: Der dynamische Import der Weltkugel
+// Dynamischer Import für die Weltkugel
 import GeoRadarWrapper from "@/components/admin/GeoRadarWrapper";
 
 export default function MissionControl() {
@@ -17,9 +18,17 @@ export default function MissionControl() {
   const [isEditing, setIsEditing] = useState(false);
   const [lastEvent, setLastEvent] = useState("System Initialized // AETHER Kernel v2.4");
   
+  // SEO States
   const [targetKeywords, setTargetKeywords] = useState("IT Infrastructure, Field Operations, Next.js Development, NRW, AETHER OS");
   const [visitorCount, setVisitorCount] = useState(0);
 
+  // Market Intel State (AI First Vorführung)
+  const [marketData, setMarketData] = useState({
+    keyword: "INITIALIZING...",
+    insight: "AETHER OS is scanning global market nodes..."
+  });
+
+  // Initiales Tracking & Market Intel Polling
   useEffect(() => {
     const initTracking = async () => {
       await trackVisitor({
@@ -29,7 +38,23 @@ export default function MissionControl() {
       });
       setVisitorCount(prev => prev + 1);
     };
+
+    const fetchMarketIntel = async () => {
+      const data = await getLatestMarketIntel();
+      if (data) {
+        setMarketData({
+          keyword: data.keyword,
+          insight: data.insight
+        });
+      }
+    };
+
     initTracking();
+    fetchMarketIntel();
+
+    // Polling für Live-Ingest Demo (alle 10 Sekunden)
+    const interval = setInterval(fetchMarketIntel, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const triggerManualSync = () => {
@@ -169,7 +194,7 @@ export default function MissionControl() {
         {/* RIGHT COLUMN */}
         <div className="lg:col-span-4 space-y-10">
           
-          {/* VISITOR GEO STREAM // JETZT MIT WELTKUGEL */}
+          {/* VISITOR GEO STREAM */}
           <div className="bg-zinc-950 border border-white/5 p-8 rounded-[3rem] space-y-6">
              <div className="flex justify-between items-center px-2">
                 <h2 className="text-[10px] font-black uppercase text-white tracking-widest flex items-center gap-2">
@@ -178,11 +203,8 @@ export default function MissionControl() {
                 <span className="text-[9px] bg-white/5 px-2 py-1 rounded text-zinc-500 uppercase font-bold">Node: {visitorCount}</span>
              </div>
              
-             {/* Die Weltkugel-Komponente ersetzt den alten statischen Block */}
              <div className="h-80 bg-zinc-900/50 rounded-[2.5rem] border border-white/5 relative overflow-hidden group shadow-inner">
                 <GeoRadarWrapper />
-                
-                {/* Overlay für den technischen Look */}
                 <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 border border-white/5 rounded text-[7px] text-zinc-500 font-mono uppercase pointer-events-none">
                   Orbital_Track_Enabled
                 </div>
@@ -216,16 +238,20 @@ export default function MissionControl() {
             </div>
           </div>
 
-          {/* AI MARKET INTEL */}
+          {/* AI MARKET INTEL (DYNAMISCH) */}
           <div className="bg-[#b33927] p-8 rounded-[3rem] space-y-6 shadow-[0_25px_50px_rgba(179,57,39,0.25)] relative overflow-hidden group">
             <div className="relative z-10">
               <h3 className="text-sm font-black uppercase italic tracking-widest text-white flex items-center gap-2">
                 <Radio size={16} className="animate-pulse" /> Market Intel
               </h3>
-              <p className="text-[10px] font-mono text-white/90 leading-relaxed uppercase tracking-wider mt-4">
-                Hohes Suchvolumen für <span className="text-black bg-white px-1">"Resiliente IT-Infrastruktur"</span> erkannt. 
-                Metadaten wurden automatisch für KI-Crawler optimiert.
-              </p>
+              <div className="mt-4 space-y-3">
+                <p className="text-[10px] font-mono text-white/90 leading-relaxed uppercase tracking-wider">
+                  Hohes Suchvolumen für <span className="text-black bg-white- px-1 font-bold">"{marketData.keyword}"</span> erkannt. 
+                </p>
+                <p className="text-[9px] font-mono text-white/70 uppercase leading-tight italic">
+                  {marketData.insight}
+                </p>
+              </div>
             </div>
             <Zap className="absolute -bottom-4 -right-4 text-white/10 w-24 h-24 rotate-12" />
           </div>
