@@ -7,7 +7,7 @@ import {
   Home, FileText, MessageSquareText, Box, FolderKanban, Users,
   Truck, Landmark, BarChart3, UserCheck, ShoppingCart,
   MonitorSmartphone, Layers, Settings, Mail, ClipboardList,
-  Database, ChevronLeft, ChevronRight, MapPin, Zap, AppWindow 
+  Database, ChevronLeft, ChevronRight, MapPin, Zap, AppWindow, LayoutGrid
 } from "lucide-react";
 
 // 1. GLOBALER TYP FÜR DEINE MODULE
@@ -33,11 +33,12 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
     { id: 'DPS', label: 'DPS Dynamic Pages', href: '/admin/pages', icon: AppWindow, isPaid: true },
     { id: 'comments', label: 'Kommentare', href: '/admin/comments', icon: MessageSquareText, isInclude: true },
     { id: 'categories', label: 'Kategorien', href: '/admin/categories', icon: Layers, isInclude: true },
+    { id: 'gallery', label: 'Gallerie', href: '/admin/gallary', icon: LayoutGrid, isInclude: true },
     
     { id: 'inventory', label: 'Inventory', href: '/admin/inventory', icon: Box, separator: true, isPaid: true },
     { id: 'projects', label: 'Projects', href: '/admin/projects', icon: FolderKanban, isPaid: true },
     { id: 'staff', label: 'Mitarbeiter', href: '/admin/users', icon: UserCheck, isInclude: true },
-    { id: 'customers', label: 'Kunden', href: '/admin/customers', icon: Users, isPaid: true }, // Beispiel: Kunden jetzt Paid
+    { id: 'customers', label: 'Kunden', href: '/admin/customers', icon: Users, isPaid: true }, 
     { id: 'suppliers', label: 'Lieferanten', href: '/admin/suppliers', icon: Truck, isPaid: true },
     
     { id: 'shop', label: 'Shop System', href: '/admin/shop', icon: ShoppingCart, separator: true, isPaid: true },
