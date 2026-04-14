@@ -8,39 +8,65 @@ import {
   Upload, 
   FolderPlus, 
   Trash2,
-  LayoutGrid
+  LayoutGrid,
+  RefreshCcw
 } from "lucide-react";
-
-// Die Namen müssen exakt mit deinen Dateien in /public/images/... übereinstimmen
-const INITIAL_DATA = {
-  blog: ["demo-blog.jpg"],
-  shop: ["product-01.png"]
-};
+import { getGalleryImages, uploadImage } from "@/modules/gallery/gallery.actions";
 
 export default function GalleryMissionControl() {
   const [activeTab, setActiveTab] = useState<"blog" | "shop">("blog");
   const [uploading, setUploading] = useState(false);
-  const [images, setImages] = useState(INITIAL_DATA);
+  const [loading, setLoading] = useState(true);
+  const [images, setImages] = useState<any[]>([]);
 
-  // Hier könnte später eine Server Action die echten Dateinamen aus der DB laden
-  const currentImages = images[activeTab];
+  // Funktion zum Laden der Bilder aus der Datenbank
+  const loadImages = async () => {
+    setLoading(true);
+    try {
+      const data = await getGalleryImages(activeTab);
+      setImages(data || []);
+    } catch (error) {
+      console.error("Fehler beim Laden der Galerie:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Effekt: Neu laden bei Tab-Wechsel
+  useEffect(() => {
+    loadImages();
+  }, [activeTab]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0]) return;
     setUploading(true);
     
-    // Simulierter Upload-Prozess
-    // Hier würde im echten Case die Server Action 'uploadImage' aufgerufen werden
-    setTimeout(() => {
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("category", activeTab);
+
+    try {
+      const result = await uploadImage(formData);
+      if (result.success) {
+        // Liste sofort aktualisieren
+        await loadImages();
+      } else {
+        alert("Upload fehlgeschlagen.");
+      }
+    } catch (error) {
+      console.error("Upload Error:", error);
+    } finally {
       setUploading(false);
-      console.log("Upload abgeschlossen für Kategorie:", activeTab);
-    }, 1500);
+      // Input zurücksetzen, damit dieselbe Datei nochmal gewählt werden könnte
+      e.target.value = "";
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#030303] text-white p-8 md:p-12 font-mono pb-32">
       
-      {/* HEADER BEREICH */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 border-b border-white/5 pb-8 gap-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -52,14 +78,24 @@ export default function GalleryMissionControl() {
           </h1>
         </div>
         
-        <label className="cursor-pointer bg-[#b33927] hover:bg-[#912e20] text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all shadow-[0_0_20px_rgba(179,57,39,0.3)] hover:scale-105 active:scale-95">
-          <Upload size={16} /> 
-          {uploading ? "Ingesting..." : `Upload to ${activeTab}`}
-          <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
-        </label>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={loadImages}
+            className="p-4 rounded-full border border-white/5 hover:bg-white/5 transition-all"
+            title="Refresh"
+          >
+            <RefreshCcw size={16} className={loading ? "animate-spin text-[#b33927]" : "text-zinc-500"} />
+          </button>
+          
+          <label className="cursor-pointer bg-[#b33927] hover:bg-[#912e20] text-white px-8 py-4 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all shadow-[0_0_20px_rgba(179,57,39,0.3)] hover:scale-105 active:scale-95">
+            <Upload size={16} /> 
+            {uploading ? "Ingesting..." : `Upload to ${activeTab}`}
+            <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
+          </label>
+        </div>
       </div>
 
-      {/* TABS ZUR TRENNUNG (BLOG / SHOP) */}
+      {/* TABS */}
       <div className="flex gap-4 mb-10">
         <button 
           onClick={() => setActiveTab("blog")}
@@ -83,62 +119,64 @@ export default function GalleryMissionControl() {
 
       {/* GALLERY GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-        {currentImages.map((img, i) => (
-          <div key={i} className="group relative aspect-square bg-zinc-900/50 rounded-[2.5rem] border border-white/5 overflow-hidden hover:border-[#b33927]/40 transition-all duration-500 shadow-2xl">
-            
-            {/* Bild-Rendering mit Pfad-Logik */}
+        
+        {/* ADD NEW SLOT */}
+        <label className="aspect-square border-2 border-dashed border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-zinc-700 hover:text-[#b33927] hover:border-[#b33927]/30 transition-all duration-300 cursor-pointer bg-zinc-900/20 group order-last md:order-first">
+          <div className="p-5 rounded-full bg-zinc-900 group-hover:scale-110 transition-transform">
+            <FolderPlus size={32} />
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Add Asset</span>
+            <input type="file" className="hidden" onChange={handleUpload} />
+          </div>
+        </label>
+
+        {/* IMAGE SLOTS */}
+        {images.map((img) => (
+          <div key={img.id} className="group relative aspect-square bg-zinc-900/50 rounded-[2.5rem] border border-white/5 overflow-hidden hover:border-[#b33927]/40 transition-all duration-500 shadow-2xl">
             <img 
-              src={`/images/${activeTab}/${img}`} 
-              alt={img}
+              src={img.url} 
+              alt={img.file_name}
               className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-in-out"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://via.placeholder.com/400?text=Asset+Not+Found";
+                (e.target as HTMLImageElement).src = "https://via.placeholder.com/400?text=Asset+Error";
               }}
             />
-
-            {/* Icon als Fallback (wird überlagert) */}
-            <div className="absolute inset-0 flex items-center justify-center text-zinc-800 -z-10">
-              <ImageIcon size={48} />
-            </div>
             
-            {/* ACTION OVERLAY */}
+            {/* OVERLAY ACTIONS */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6">
               <div className="flex justify-end">
-                <button className="p-3 bg-[#b33927]/90 hover:bg-[#b33927] text-white rounded-full transition-all hover:rotate-90 shadow-xl">
+                <button className="p-3 bg-[#b33927]/90 hover:bg-[#b33927] text-white rounded-full transition-all hover:rotate-90">
                   <Trash2 size={16} />
                 </button>
               </div>
               
               <div className="space-y-1">
-                <p className="text-[8px] text-[#b33927] font-black uppercase tracking-widest">Path: /images/{activeTab}/</p>
+                <p className="text-[8px] text-[#b33927] font-black uppercase tracking-widest">Type: {img.category}</p>
                 <p className="text-[10px] text-white truncate uppercase font-bold tracking-tighter bg-black/50 backdrop-blur-md px-2 py-1 rounded">
-                  {img}
+                  {img.file_name}
                 </p>
               </div>
             </div>
           </div>
         ))}
 
-        {/* ADD NEW ASSET SLOT */}
-        <label className="aspect-square border-2 border-dashed border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-zinc-700 hover:text-[#b33927] hover:border-[#b33927]/30 transition-all duration-300 cursor-pointer bg-zinc-900/20 group">
-          <div className="p-5 rounded-full bg-zinc-900 group-hover:scale-110 transition-transform">
-            <FolderPlus size={32} />
+        {/* LOADING STATE */}
+        {loading && images.length === 0 && (
+          <div className="col-span-full py-20 text-center">
+            <RefreshCcw className="animate-spin text-[#b33927] mx-auto mb-4" size={32} />
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Querying Media Registry...</p>
           </div>
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Add Asset</span>
-            <span className="text-[7px] font-bold text-zinc-800 uppercase">System Ingest</span>
-          </div>
-          <input type="file" className="hidden" onChange={handleUpload} />
-        </label>
+        )}
       </div>
 
       {/* SYSTEM LOG FOOTER */}
       <div className="mt-20 border-t border-white/5 pt-8 flex items-center justify-center gap-8 opacity-30">
-        <span className="text-[7px] uppercase font-bold tracking-widest flex items-center gap-2 italic">
-          <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /> File_System: Active
+        <span className="text-[7px] uppercase font-bold tracking-widest flex items-center gap-2">
+          <div className="w-1 h-1 bg-emerald-500 rounded-full" /> FS_STATUS: MOUNTED
         </span>
-        <span className="text-[7px] uppercase font-bold tracking-widest flex items-center gap-2 italic">
-          <div className="w-1 h-1 bg-[#b33927] rounded-full animate-pulse" /> Storage_Nodes: Synced
+        <span className="text-[7px] uppercase font-bold tracking-widest flex items-center gap-2">
+          <div className="w-1 h-1 bg-[#b33927] rounded-full" /> DB_LINK: SECURED
         </span>
       </div>
     </div>
