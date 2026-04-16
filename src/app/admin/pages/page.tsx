@@ -5,11 +5,13 @@ import {
   Edit3, 
   Trash2, 
   Plus,
-  ExternalLink 
+  ExternalLink,
+  Settings2,
+  Activity
 } from "lucide-react";
 
 interface PageEntry {
-  id: string;
+  id: number; // In deiner DB ist es ein Integer
   title: string;
   slug: string;
   nav_order: number;
@@ -20,81 +22,114 @@ interface PageEntry {
 export default async function PagesManagement() {
   const supabase = await createClient();
   
-  const { data: pages } = await supabase
+  // Daten aus dem Kernel laden
+  const { data: pages, error } = await supabase
     .from('pages')
     .select('*')
-    .order('nav_order', { ascending: true }) as { data: PageEntry[] | null };
+    .order('id', { ascending: true }) as { data: PageEntry[] | null, error: any };
 
   return (
-    <div className="p-8 font-sans max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-10">
+    <div className="p-8 font-mono max-w-7xl mx-auto min-h-screen bg-[#05070a] text-white">
+      
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
-            DPS Seitenverwaltung
+          <div className="flex items-center gap-3 mb-2">
+            <Activity size={14} className="text-blue-500 animate-pulse" />
+            <span className="text-[10px] text-zinc-500 uppercase tracking-[0.4em] font-bold">
+              AETHER OS // CMS MODULE
+            </span>
+          </div>
+          <h1 className="text-4xl font-black italic uppercase tracking-tighter">
+            DSP <span className="text-blue-600">Nodes</span>
           </h1>
-          <p className="text-zinc-500 text-[10px] mt-1 uppercase tracking-[0.3em] font-bold">
-            DPS | Structure & Core Nodes // AETHER OS
+          <p className="text-zinc-600 text-[10px] mt-2 uppercase tracking-widest">
+            Verwaltung der dynamischen Seiten-Architektur
           </p>
         </div>
-        {/* Link zur Erstellung (muss noch gebaut werden) */}
-        <button className="bg-[#1e5d9c] hover:bg-blue-500 text-white font-black py-4 px-8 rounded-2xl flex items-center gap-3 transition-all shadow-[0_10px_20px_rgba(0,0,0,0.3)] uppercase text-[10px] tracking-widest">
-          <Plus size={18} /> Neue Seite initialisieren
+
+        <button className="group relative overflow-hidden bg-white text-black font-black py-4 px-8 rounded-sm flex items-center gap-3 transition-all hover:pr-12 uppercase text-[10px] tracking-widest">
+          <Plus size={16} /> 
+          <span>Initialise New Node</span>
+          <div className="absolute right-4 translate-x-10 group-hover:translate-x-0 transition-transform">
+            <Settings2 size={16} />
+          </div>
         </button>
       </div>
 
-      <div className="bg-zinc-950/40 border border-white/5 rounded-[2.5rem] overflow-hidden backdrop-blur-xl shadow-2xl">
+      {/* NODES LIST */}
+      <div className="bg-zinc-900/10 border border-white/5 rounded-sm overflow-hidden backdrop-blur-sm shadow-2xl">
+        
+        {/* TABLE HEADER */}
+        <div className="grid grid-cols-12 p-4 bg-white/[0.02] border-b border-white/5 text-[9px] uppercase tracking-[0.2em] text-zinc-500 font-bold">
+          <div className="col-span-6 lg:col-span-5 px-4">Entity / Identifier</div>
+          <div className="hidden lg:grid col-span-3 text-center">Status / Meta</div>
+          <div className="col-span-6 lg:col-span-4 text-right px-4">Actions</div>
+        </div>
+
         <div className="divide-y divide-white/5">
           {pages?.map((page) => (
-            <div key={page.id} className="p-6 flex items-center justify-between hover:bg-white/[0.01] transition-all group">
+            <div key={page.id} className="grid grid-cols-12 p-6 items-center hover:bg-white/[0.02] transition-all group border-l-2 border-transparent hover:border-blue-600">
               
-              <div className="flex items-center gap-6">
-                <div className="w-14 h-14 bg-zinc-900 rounded-2xl flex items-center justify-center text-zinc-600 group-hover:text-blue-500 transition-colors border border-white/5">
-                  <FileText size={24} />
+              {/* Entity Info */}
+              <div className="col-span-6 lg:col-span-5 flex items-center gap-6">
+                <div className="relative w-12 h-12 bg-zinc-950 border border-white/10 flex items-center justify-center group-hover:border-blue-500/50 transition-colors">
+                  <FileText size={20} className="text-zinc-700 group-hover:text-blue-500 transition-colors" />
+                  <span className="absolute -top-2 -right-2 text-[8px] bg-blue-600 text-white px-1 font-bold">
+                    ID_{page.id}
+                  </span>
                 </div>
                 <div>
-                  <h3 className="text-white font-black text-sm uppercase tracking-wider">{page.title}</h3>
+                  <h3 className="text-white font-black text-sm uppercase tracking-wider group-hover:text-blue-400 transition-colors">
+                    {page.title}
+                  </h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] font-mono text-zinc-600 uppercase italic">Path:</span>
+                    <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-tighter italic">Virtual_Path:</span>
                     <span className="text-[9px] font-mono text-blue-500/80">/{page.slug}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              {/* Status Tags */}
+              <div className="hidden lg:flex col-span-3 items-center justify-center gap-3">
                 {page.show_in_nav && (
-                  <span className="px-3 py-1 bg-blue-500/5 border border-blue-500/10 text-blue-500 text-[8px] font-black uppercase rounded-md tracking-tighter">
-                    Main Navigation
+                  <span className="px-2 py-1 border border-blue-500/20 text-blue-500 text-[8px] font-black uppercase tracking-tighter bg-blue-500/5">
+                    Nav_Active
                   </span>
                 )}
-                <span className={`px-3 py-1 border text-[8px] font-black uppercase rounded-md tracking-tighter ${
+                <span className={`px-2 py-1 border text-[8px] font-black uppercase tracking-tighter ${
                   page.is_published 
-                  ? "bg-green-500/5 border-green-500/10 text-green-500" 
-                  : "bg-zinc-900 border-zinc-800 text-zinc-700"
+                  ? "border-green-500/20 text-green-500 bg-green-500/5" 
+                  : "border-zinc-800 text-zinc-700 bg-zinc-900"
                 }`}>
-                  {page.is_published ? "Live" : "Draft"}
+                  {page.is_published ? "Protocol_Live" : "Draft_Mode"}
                 </span>
               </div>
 
-              <div className="flex items-center gap-3">
-                {/* Direkt-Link zur Live-Ansicht */}
+              {/* Action Buttons */}
+              <div className="col-span-6 lg:col-span-4 flex items-center justify-end gap-2 px-2">
+                {/* LIVE PREVIEW (Korrekt auf /dsp/[id]) */}
                 <Link 
-                  href={`/${page.slug}`} 
+                  href={`/dsp/${page.id}`} 
                   target="_blank"
-                  className="p-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-500 rounded-xl transition-all border border-white/5"
-                  title="Vorschau"
+                  className="p-3 bg-zinc-950 hover:bg-blue-900/20 text-zinc-600 hover:text-blue-400 transition-all border border-white/5"
+                  title="Open Preview"
                 >
                   <ExternalLink size={14} />
                 </Link>
 
+                {/* EDIT ADMIN */}
                 <Link 
                   href={`/admin/pages/edit/${page.id}`}
-                  className="h-12 px-6 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border border-white/5"
+                  className="h-10 px-6 bg-zinc-950 hover:bg-zinc-800 text-white border border-white/10 flex items-center gap-3 text-[9px] font-black uppercase tracking-[0.2em] transition-all"
                 >
-                  <Edit3 size={14} className="text-orange-500" /> Bearbeiten
+                  <Edit3 size={14} className="text-orange-500" /> 
+                  <span className="hidden sm:inline">Modify</span>
                 </Link>
                 
-                <button className="w-12 h-12 bg-zinc-900 hover:bg-red-950/30 text-zinc-700 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-white/5">
-                  <Trash2 size={16} />
+                {/* DELETE */}
+                <button className="w-10 h-10 bg-zinc-950 hover:bg-red-950/40 text-zinc-800 hover:text-red-500 transition-all border border-white/5 flex items-center justify-center">
+                  <Trash2 size={14} />
                 </button>
               </div>
 
@@ -102,11 +137,22 @@ export default async function PagesManagement() {
           ))}
 
           {(!pages || pages.length === 0) && (
-            <div className="p-20 text-center">
-              <p className="text-zinc-600 uppercase tracking-[0.3em] text-[10px] font-black italic">No Nodes Detected</p>
+            <div className="p-24 text-center border-t border-white/5">
+              <div className="inline-block p-4 border border-dashed border-zinc-800 mb-4">
+                <FileText size={40} className="text-zinc-900" />
+              </div>
+              <p className="text-zinc-700 uppercase tracking-[0.5em] text-[10px] font-black italic">
+                No Nodes Detected in Central Database
+              </p>
             </div>
           )}
         </div>
+      </div>
+
+      {/* FOOTER DATA */}
+      <div className="mt-8 flex justify-between items-center text-[8px] text-zinc-700 uppercase tracking-[0.3em]">
+        <div>Aether OS v4.6 // Enterprise Intelligence Hub</div>
+        <div>System_Time: {new Date().toLocaleTimeString()}</div>
       </div>
     </div>
   );

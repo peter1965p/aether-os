@@ -846,3 +846,79 @@ export async function updateAetherPage(formData: FormData) {
   
   return;
 }
+
+/**
+ * AETHER OS // DSP CORE ENGINE
+ * Holt die Seiten-Struktur und deren Sektionen für das dynamische Rendering.
+ */
+export async function getPageBySlug(slug: string) {
+  try {
+    const { data, error } = await db
+      .from("pages")
+      .select("*")
+      .eq("slug", slug)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("AETHER_DSP_PAGE_ERROR:", error);
+    return null;
+  }
+}
+
+export async function getPageSections(pageId: number) {
+  try {
+    const { data, error } = await db
+      .from("page_sections")
+      .select("*")
+      .eq("page_id", pageId)
+      .order("order_index", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("AETHER_DSP_SECTIONS_ERROR:", error);
+    return [];
+  }
+}
+
+export async function updateAetherPages(formData: FormData) {
+  const db = await createClient(); // Nutzt deinen Client [cite: 2026-03-28]
+
+  const id = formData.get("page_id") as string;
+  const title = formData.get("title") as string; // FIX: "zitle" -> "title"
+  const slug = formData.get("slug") as string;
+
+  // 1. Update der Hauptseite
+  await db
+    .from('pages')
+    .update({ 
+      title, 
+      slug, 
+      updated_at: new Date().toISOString() 
+    })
+    .eq('id', id);
+
+  // 2. Update der Sektionen
+  const sectionIds = formData.getAll("section_id") as string[];
+
+  for (const sId of sectionIds) {
+    await db
+      .from('page_sections') 
+      .update({
+        title: formData.get(`section_title_${sId}`) as string,
+        subtitle: formData.get(`section_subtitle_${sId}`) as string,
+        content: formData.get(`section_content_${sId}`) as string,
+        image_url: formData.get(`section_image_${sId}`) as string
+      }) // FIX: Hier war ein Semikolon, das muss weg!
+      .eq('id', sId);    
+  }
+
+  // Cache-Invalidierung für sofortige Updates [cite: 2026-03-28]
+  revalidatePath("/admin/pages");
+  revalidatePath(`/admin/pages/edit/${id}`);
+  revalidatePath(`/dsp/${id}`); 
+  
+  return { success: true };
+}
