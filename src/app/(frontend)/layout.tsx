@@ -25,7 +25,6 @@ const montserrat = Montserrat({
 });
 const oswald = Oswald({ subsets: ["latin"], variable: "--font-oswald" });
 
-// METADATA (FIX FÜR DEN BUILD-FEHLER & SEO)
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.paeffgen-it.de'),
   title: {
@@ -59,7 +58,7 @@ export default async function FrontendLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // 1. STYLE KERNEL ABFRAGE (SUPABASE)
+  // 1. STYLE KERNEL ABFRAGE
   const { data: settingsData } = await db
     .from("site_settings")
     .select("key, value")
@@ -69,65 +68,64 @@ export default async function FrontendLayout({
   const { data: { session } } = await db.auth.getSession();
   const hasSession = !!session;
 
-  // 3. COLOR MAPPING
+  // 3. COLOR MAPPING MIT TYPESCRIPT FIX (Parameter "s" typisiert)
   const settings = (settingsData as SiteSetting[]) || [];
+  
   const colors = {
-    accent: settings.find((s) => s.key === "accent_rgb")?.value || "34 197 94",
-    bg: settings.find((s) => s.key === "bg_rgb")?.value || "0 0 0",
-    card: settings.find((s) => s.key === "card_rgb")?.value || "10 10 10",
+    accent: settings.find((s: SiteSetting) => s.key === "accent_rgb")?.value || "34 197 94",
+    bg: settings.find((s: SiteSetting) => s.key === "bg_rgb")?.value || "0 0 0",
+    card: settings.find((s: SiteSetting) => s.key === "card_rgb")?.value || "10 10 10",
   };
 
   return (
-    <html lang="de" className="scroll-smooth">
-      <body
-        style={{
-          // @ts-ignore
-          "--accent-rgb": colors.accent,
-          "--bg-rgb": colors.bg,
-          "--card-rgb": colors.card,
-        }}
-        className={`${inter.variable} ${bebas.variable} ${mono.variable} ${montserrat.variable} ${oswald.variable} min-h-screen font-sans antialiased`}
-        id="aether-root"
-      >
-        <style dangerouslySetInnerHTML={{ __html: `
-          :root {
-            --accent: ${colors.accent};
-            --background: ${colors.bg};
-            --card: ${colors.card};
-          }
-          
-          #aether-root { 
-            background-color: rgb(${colors.bg}); 
-            color: white; 
-          }
-
-          /* AETHER OS CORE STYLES */
-          .bg-card { background-color: rgb(${colors.card}); }
-          .text-accent { color: rgb(${colors.accent}); }
-          .border-accent { border-color: rgba(${colors.accent}, 0.2); }
-
-          .font-bebas { font-family: var(--font-bebas); }
-          .font-mono { font-family: var(--font-mono); }
-          .font-montserrat { font-family: var(--font-montserrat); }
-          .font-oswald { font-family: var(--font-oswald); }
-          
-          ::selection { background: rgba(${colors.accent}, 0.3); color: white; }
-        `}} />
-
-        {/* TRACKING LAYER // AETHER OS TELEMETRY */}
-        <Tracker />
-
-        {/* NAVIGATION LAYER */}
-        <Navbar session={hasSession} />
+    <div 
+      id="aether-frontend-root"
+      className={`${inter.variable} ${bebas.variable} ${mono.variable} ${montserrat.variable} ${oswald.variable} min-h-screen font-sans antialiased selection:bg-blue-500/30`}
+      style={{
+        // @ts-ignore
+        "--accent-rgb": colors.accent,
+        "--bg-rgb": colors.bg,
+        "--card-rgb": colors.card,
+      }}
+    >
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root {
+          --accent: ${colors.accent};
+          --background: ${colors.bg};
+          --card: ${colors.card};
+        }
         
-        {/* CONTENT LAYER */}
-        <main className="relative z-10 min-h-screen">
-          {children}
-        </main>
+        /* Da dieses Layout im globalen Body sitzt, stylen wir den Body hier um */
+        body { 
+          background-color: rgb(${colors.bg}) !important; 
+          color: white; 
+        }
+
+        .bg-card { background-color: rgb(${colors.card}); }
+        .text-accent { color: rgb(${colors.accent}); }
+        .border-accent { border-color: rgba(${colors.accent}, 0.2); }
+
+        .font-bebas { font-family: var(--font-bebas); }
+        .font-mono { font-family: var(--font-mono); }
+        .font-montserrat { font-family: var(--font-montserrat); }
+        .font-oswald { font-family: var(--font-oswald); }
         
-        {/* FOOTER LAYER */}
-        <Footer />
-      </body>
-    </html>
+        ::selection { background: rgba(${colors.accent}, 0.3); color: white; }
+      `}} />
+
+      {/* TRACKING LAYER */}
+      <Tracker />
+
+      {/* NAVIGATION LAYER */}
+      <Navbar session={hasSession} />
+      
+      {/* CONTENT LAYER */}
+      <main className="relative z-10 min-h-screen">
+        {children}
+      </main>
+      
+      {/* FOOTER LAYER */}
+      <Footer />
+    </div>
   );
 }

@@ -12,13 +12,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { updateAetherPages } from "@/modules/inventory/actions";
+export const dynamic = 'force-dynamic';
+export default async function EditPage(probs:{ params: Promise<{ id: string}> }) {
+  
+  const params = await probs.params;
+  const id  = params.id;
 
-export default async function EditPage({ params }: { params: { id: string } }) {
-  const supabase = await createClient();
-  const { id } = params;
+  const db = await createClient();
 
   // Daten abrufen inklusive Sektionen
-  const { data: page } = await supabase
+  const { data: page } = await db
     .from('pages')
     .select('*, page_sections(*)')
     .eq('id', id)
