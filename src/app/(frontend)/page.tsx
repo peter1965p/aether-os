@@ -3,9 +3,12 @@ import {
   Wrench, Zap, Activity, MapPin, ShieldCheck, 
   ExternalLink, Box, Layers, Cpu
 } from "lucide-react";
+import { notFound } from "next/navigation";
 import db from "@/lib/db";
+import { createClient } from "@/lib/db";
 import { getGlobalMeta } from "@/lib/seo-bridge";
 import VisitorTracker from "@/components/VisitorTracker";
+import DSPPageView from "@/components/dsp/DSPPageView";
 
 /**
  * AETHER OS // DYNAMISCHE METADATEN (SEO & KI OPTIMIERUNG)
@@ -38,6 +41,8 @@ export async function generateMetadata(): Promise<Metadata> {
     }
   };
 }
+
+
 
 export default async function HomePage() {
   /* --- AETHER OS: CORE DATA FETCH --- */
