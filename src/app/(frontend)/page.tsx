@@ -12,7 +12,6 @@ import DSPPageView from "@/components/dsp/DSPPageView";
 
 /**
  * AETHER OS // DYNAMISCHE METADATEN (SEO & KI OPTIMIERUNG)
- * Zieht Daten jetzt direkt aus dem Intelligence Hub Kernel.
  */
 export async function generateMetadata(): Promise<Metadata> {
   const meta = await getGlobalMeta();
@@ -32,20 +31,22 @@ export async function generateMetadata(): Promise<Metadata> {
       url: "https://paeffgen-it.de",
       images: [{ url: "/og-image.png", width: 1200, height: 630 }],
     },
-    robots: {
-      index: true,
-      follow: true,
-    },
-    other: {
-      "ai-agent-context": meta?.last_event_trigger || "Operational Mode"
-    }
+    robots: { index: true, follow: true },
+    other: { "ai-agent-context": meta?.last_event_trigger || "Operational Mode" }
   };
 }
 
-
-
 export default async function HomePage() {
-  /* --- AETHER OS: CORE DATA FETCH --- */
+  const supabase = await createClient();
+
+  /* --- 1. CMS LOGIC: Welche Seite ist als Landingpage markiert? --- */
+  const { data: landingPage } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('is_landingpage', true)
+    .single();
+
+  /* --- 2. CORE DATA FETCH: Produkte --- */
   const { data: products } = await db
     .from("products")
     .select(`*, categories (name)`)
@@ -70,9 +71,7 @@ export default async function HomePage() {
       "@type": "PostalAddress",
       "addressRegion": "NRW, RLP",
       "addressCountry": "DE"
-    },
-    "knowsAbout": ["IT Infrastructure", "Next.js", "Supabase", "Field Service Engineering"],
-    "areaServed": ["NRW", "RLP", "Saarland", "Luxemburg"]
+    }
   };
 
   return (
@@ -82,13 +81,11 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* AETHER OS TRACKING HIVE */}
       <VisitorTracker />
 
-      {/* FIXED: font-sans entfernt, nur font-mono für konsistenten Look */}
       <div className="min-h-screen bg-[#05070a] text-white selection:bg-blue-500/30 font-mono">
         
-        {/* 1. HERO SECTION */}
+        {/* SECTION 1: HERO (Globales Branding) */}
         <section className="max-w-7xl mx-auto px-6 py-24 border-b border-white/5">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-12">
             <div className="flex-1">
@@ -97,7 +94,7 @@ export default async function HomePage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                 </span>
-                SYSTEM: AETHER OS // STATUS: OPERATIV // READY 05/2026
+                SYSTEM: AETHER OS // STATUS: OPERATIV // 2026
               </div>
               <h1 className="text-5xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.85] mb-4">
                 PAEFFGEN IT <br /> 
@@ -118,7 +115,14 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 2. PRODUCT SHOWCASE */}
+        {/* SECTION 2: DYNAMISCHE SEKTOREN (Das CMS-Häkchen) */}
+        {landingPage && (
+          <div className="border-b border-white/5 bg-zinc-950/20">
+            <DSPPageView id={landingPage.id} />
+          </div>
+        )}
+
+        {/* SECTION 3: PRODUCT SHOWCASE */}
         <section id="aether-os" className="max-w-7xl mx-auto px-6 py-16 border-x border-white/5 bg-gradient-to-b from-blue-600/[0.03] to-transparent">
           <h2 className="text-sm font-mono font-bold uppercase text-blue-500 mb-12 tracking-[0.2em]">LATEST <span className="text-orange-500">Modules</span> // REGISTRY</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -142,7 +146,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 3. TECH ARCHITECTURE */}
+        {/* SECTION 4: TECH ARCHITECTURE */}
         <section className="max-w-7xl mx-auto px-6 py-24 border-x border-white/5 bg-[#05070a]">
           <div className="flex flex-col lg:flex-row gap-16">
             <div className="w-full lg:w-1/3">
@@ -153,13 +157,12 @@ export default async function HomePage() {
                 Vollständig modularer Aufbau basierend auf dem Next.js App-Router. Sicherheit durch serverseitige Validierung und Supabase-Integration.
               </p>
             </div>
-
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-px bg-white/5 border border-white/5">
               {[
-                { label: "Logic Layer", title: "Server Actions", desc: "Direkte DB-Interaktion via lib/actions für maximale Performance ohne REST-Overhead." },
-                { label: "Security", title: "Middleware & Auth", desc: "Zentralisierte Route-Protection und Role-Based Access Control (RBAC) über Next-Middleware." },
-                { label: "UI System", title: "Custom Components", desc: "Wiederverwendbare Komponenten wie FormRenderer und Card für schnelle Skalierung." },
-                { label: "Backend", title: "Supabase Cloud", desc: "PostgreSQL mit Realtime-Features für Live-Updates im Dashboard-Status." }
+                { label: "Logic Layer", title: "Server Actions", desc: "Direkte DB-Interaktion via lib/actions für maximale Performance." },
+                { label: "Security", title: "Middleware & Auth", desc: "Zentralisierte Route-Protection und Role-Based Access Control." },
+                { label: "UI System", title: "Custom Components", desc: "Wiederverwendbare Komponenten wie FormRenderer für schnelle Skalierung." },
+                { label: "Backend", title: "Supabase Cloud", desc: "PostgreSQL mit Realtime-Features für Live-Updates." }
               ].map((tech, i) => (
                 <div key={i} className="bg-[#05070a] p-8 hover:bg-blue-600/[0.04] transition-colors border-r border-b border-white/5">
                   <span className="text-[9px] text-blue-500 tracking-[0.2em] uppercase">{tech.label}</span>
@@ -171,12 +174,12 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 4. CORE COMPETENCIES */}
+        {/* SECTION 5: CORE COMPETENCIES */}
         <section className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 border-x border-t border-white/5 bg-[#05070a]">
           {[
-            { icon: <Wrench size={24} />, title: "Field Operations", desc: "Präziser Hardware-Rollout, Lifecycle-Management und Vor-Ort-Instandsetzung für Enterprise-Flotten." },
-            { icon: <Zap size={24} />, title: "Fullstack Development", desc: "Architektur moderner Web-Applikationen mit Next.js. Fokus auf Performance, Security und Realtime-Daten." },
-            { icon: <ShieldCheck size={24} />, title: "System Engineering", desc: "Jahrzehntelange Erfahrung in der Entstörung kritischer Infrastrukturen (z.B. RWE, E.ON, Dell Technologies)." }
+            { icon: <Wrench size={24} />, title: "Field Operations", desc: "Hardware-Rollout und Lifecycle-Management für Enterprise-Flotten." },
+            { icon: <Zap size={24} />, title: "Fullstack Development", desc: "Architektur moderner Web-Applikationen mit Fokus auf Performance." },
+            { icon: <ShieldCheck size={24} />, title: "System Engineering", desc: "Entstörung kritischer Infrastrukturen für RWE, E.ON und Dell." }
           ].map((item, i) => (
             <div key={i} className="p-12 border-r border-b border-white/5 hover:bg-white/[0.02] transition-all group last:border-r-0">
               <div className="text-blue-500 mb-6 group-hover:scale-110 transition-transform">{item.icon}</div>
@@ -184,40 +187,6 @@ export default async function HomePage() {
               <p className="text-slate-500 text-[11px] leading-relaxed uppercase tracking-tighter">{item.desc}</p>
             </div>
           ))}
-        </section>
-
-        {/* 5. EXPERIENCE BAR */}
-        <section className="bg-slate-950 py-10 overflow-hidden border-y border-blue-700/50">
-          <div className="flex justify-around items-center opacity-20 grayscale contrast-125 font-black italic text-xl tracking-[0.2em] whitespace-nowrap animate-pulse">
-            <span>HEMMERSBACH</span> <span className="text-blue-500">/</span>
-            <span>DELL TECHNOLOGIES</span> <span className="text-blue-500">/</span>
-            <span>RWE PROJECT</span> <span className="text-blue-500">/</span>
-            <span>E.ON OPS</span> <span className="text-blue-500">/</span>
-            <span>FIELD SERVICE</span>
-          </div>
-        </section>
-
-        {/* 6. REGION & CONTACT */}
-        <section className="max-w-7xl mx-auto px-6 py-24 flex flex-col md:flex-row gap-16 items-center border-x border-white/5">
-          <div className="flex-1">
-            <h2 className="text-3xl font-black italic uppercase mb-8">SERVICE <span className="text-blue-600">REGIONS</span></h2>
-            <div className="grid grid-cols-2 gap-3 text-[10px] text-slate-400">
-              {["NRW", "RLP", "SAARLAND", "HESSEN", "LUXEMBURG"].map(region => (
-                <div key={region} className="flex items-center gap-3 border border-white/5 p-4 rounded-sm bg-zinc-900/20 hover:border-blue-500/30 transition-colors">
-                  <MapPin size={12} className="text-blue-500" /> {region} // ACTIVE ZONE
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <div className="flex-1 bg-blue-600/5 border border-blue-500/20 p-10 rounded-sm relative overflow-hidden bg-[#05070a]">
-            <div className="absolute top-0 right-0 p-2 text-[8px] bg-blue-600 text-white uppercase italic tracking-widest">Available May 2026</div>
-            <h3 className="text-xs font-bold uppercase mb-6 text-blue-500 tracking-widest text-[9px]">CURRENT STATUS // RECRUITING OPEN</h3>
-            <p className="text-sm text-slate-300 leading-relaxed italic mb-8">"Nach erfolgreichem Abschluss der Onsite-Projekte für RWE & E.ON stehe ich ab Mai 2026 für neue Herausforderungen zur Verfügung."</p>
-            <a href="/impressum" className="group flex items-center gap-3 text-[11px] text-white uppercase tracking-widest border-b border-blue-500 w-fit pb-2 hover:text-blue-400 transition-all">
-              PROJEKT ANFRAGE SENDEN <ExternalLink size={12} className="group-hover:translate-x-1 transition-transform" />
-            </a>
-          </div>
         </section>
 
         {/* FOOTER */}
