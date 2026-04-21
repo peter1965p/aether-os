@@ -17,7 +17,7 @@ interface PageEntry {
   nav_order: number;
   show_in_nav: boolean;
   is_published: boolean;
-  is_landingpage: boolean; // Kernel-Feld integriert
+  is_landingpage: boolean; // Das hast du schon drin, sehr gut!
 }
 
 export default async function PagesManagement() {
@@ -110,7 +110,7 @@ export default async function PagesManagement() {
                   {/* Status Tags */}
                   <div className="hidden lg:flex col-span-3 items-center justify-center gap-3">
 
-                    {/* LANDINGPAGE Häkchen / Signal */}
+                    {/* HIER WAR DER FEHLER: Das Landingpage-Signal muss ins JSX */}
                     {page.is_landingpage && (
                         <div className="flex items-center gap-1.5 px-2 py-1 border border-orange-500/40 bg-orange-500/10 rounded-sm">
                     <span className="relative flex h-1.5 w-1.5">
