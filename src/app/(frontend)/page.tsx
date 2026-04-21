@@ -42,7 +42,7 @@ export default async function HomePage() {
   /* --- 1. CMS LOGIC: Welche Seite ist als Landingpage markiert? --- */
   const { data: landingPage } = await supabase
     .from('pages')
-    .select('id')
+    .select('*')
     .eq('is_landingpage', true)
     .single();
 
