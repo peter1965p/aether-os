@@ -9,6 +9,7 @@ import { createClient } from "@/lib/db";
 import { getGlobalMeta } from "@/lib/seo-bridge";
 import VisitorTracker from "@/components/VisitorTracker";
 import DSPPageView from "@/components/dsp/DSPPageView";
+import AetherAssistant from "@/modules/ai/AetherAssistant";
 
 /**
  * AETHER OS // DYNAMISCHE METADATEN (SEO & KI OPTIMIERUNG)
@@ -156,6 +157,9 @@ export default async function HomePage() {
               <p className="text-slate-400 text-[10px] leading-relaxed uppercase">
                 Vollständig modularer Aufbau basierend auf dem Next.js App-Router. Sicherheit durch serverseitige Validierung und Supabase-Integration.
               </p>
+              <div className="border-t border-blue-600 rounded-bl-md pt-8">
+                <AetherAssistant />
+              </div>
             </div>
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-px bg-white/5 border border-white/5">
               {[
