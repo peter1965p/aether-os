@@ -14,10 +14,11 @@ export default async function DynamicPage({
     .from("pages")
     .select("*")
     .eq("slug", slug)
-    .eq("is_published", true) // Postgres nutzt true/false statt 1/0
+    // .eq("is_published", true) // Postgres nutzt true/false statt 1/0
     .single();
 
   if (error || !page) {
+    console.error("DEBUG // Page not found for slug", slug, "Error:", error)
     notFound();
   }
 

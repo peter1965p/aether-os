@@ -33,7 +33,7 @@ export default function LoginPage() {
         {/* HEADER */}
         <div>
           <h2 className="text-orange-600 uppercase tracking-tighter text-xl">
-            AETHER <span className="text-blue-600">OS</span>
+            AETHER <span className="text-blue-900">OS</span>
           </h2>
           <p className="text-zinc-600 text-[9px] font-black uppercase tracking-[0.4em] mt-2">
             System Access Required

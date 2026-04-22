@@ -3,6 +3,7 @@
 import db, { createClient } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
+
 // --- TYPEN ---
 type OrderResult =
   | { success: true; orderId: number | string; status: "PENDING" | "COMPLETED" }
@@ -10,63 +11,82 @@ type OrderResult =
 
 // --- PRODUKT & INVENTAR LOGIK ---
 
+/**
+ * AETHER OS: INVENTORY CORE
+ * Synchronized with English Schema: products, stock, cost_price, min_stock
+ */
 export async function getInventoryData() {
   try {
-    const { data, error } = await db.from("produkte").select(`
-        id, name, preis, category_id,
-        lagerbestand,
-        min_bestand
+    const { data, error } = await db.from("products").select(`
+        id, 
+        name, 
+        price, 
+        category_id,
+        stock,
+        min_stock,
+        cost_price
       `);
 
     if (error) throw error;
 
-    // FIX: Typ 'any' oder Interface für das Produkt 'p' hinzugefügt
-    return data.map((p: any) => ({
+    return (data || []).map((p: any) => ({
       ...p,
-      bestand: p.lagerbestand || 0,
-      min_bestand: p.min_bestand || 5,
+      // Mapping für das Frontend (Abwärtskompatibilität)
+      preis: p.price,
+      bestand: p.stock || 0,
+      min_bestand: p.min_stock || 5,
+      ek_preis: p.cost_price || 0
     }));
   } catch (error) {
-    console.error("AETHER_INVENTORY_ERROR:", error);
+    console.error("AETHER_INVENTORY_ERROR [KERNEL]:", error);
     return [];
   }
 }
 
+/**
+ * AETHER OS: INVENTORY CORE
+ */
 export async function createFullProduct(data: {
   name: string;
   preis: number;
   ek_preis: number;
-  ust_satz: number;
+  ust_satz: number; // Hier muss er in den Typ rein!
   category_id: number;
   supplier_id: number;
+  min_stock?: number;
 }) {
   try {
     const { data: newProduct, error } = await db
-      .from("produkte")
-      .insert([
-        {
-          name: data.name,
-          preis: data.preis,
-          ek_preis: data.ek_preis,
-          ust_satz: data.ust_satz,
-          category_id: data.category_id,
-          supplier_id: data.supplier_id,
-          lagerbestand: 0,
-        },
-      ])
-      .select()
-      .single();
+        .from("products")
+        .insert([
+          {
+            name: data.name,
+            price: data.preis,
+            cost_price: data.ek_preis,
+            // Wir nennen die Spalte in der DB am besten 'vat_rate' 
+            // Falls deine DB-Spalte noch anders heißt, hier anpassen:
+            vat_rate: data.ust_satz,
+            category_id: data.category_id,
+            supplier_id: data.supplier_id,
+            stock: 0,
+            min_stock: data.min_stock || 5,
+            in_stock: true
+          },
+        ])
+        .select()
+        .single();
 
     if (error) throw error;
 
     revalidatePath("/admin/inventory");
     revalidatePath("/admin");
     return { success: true, id: newProduct.id };
-  } catch (error) {
-    console.error("AETHER_PRODUCT_CREATE_ERROR:", error);
-    return { success: false };
+  } catch (error: any) {
+    console.error("AETHER_PRODUCT_CREATE_ERROR [KERNEL]:", error.message);
+    return { success: false, error: error.message };
   }
 }
+
 
 // --- BESTELL-LOGIK (ORDERS) ---
 
@@ -173,32 +193,42 @@ export async function deleteCategory(id: number) {
 
 // --- ACCOUNTING & STATS ---
 
+/**
+ * AETHER OS: ACCOUNTING & INVENTORY METRICS
+ * Synchronized with: products (stock, cost_price, price, min_stock) & orders (total_price)
+ */
 export async function getAccountingStats() {
   try {
-    const { data: prodData } = await db
-      .from("produkte")
-      .select("lagerbestand, ek_preis, preis, min_bestand");
+    // 1. Inventar-Werte abrufen (English Schema)
+    const { data: prodData, error: prodError } = await db
+        .from("products")
+        .select("stock, cost_price, price, min_stock");
+
+    if (prodError) throw prodError;
 
     let invEK = 0;
     let invVK = 0;
     let lowStock = 0;
 
-    // FIX: Parameter 'p' typisiert
     prodData?.forEach((p: any) => {
-      const stock = p.lagerbestand || 0;
-      invEK += stock * (p.ek_preis || 0);
-      invVK += stock * (p.preis || 0);
-      if (stock < (p.min_bestand || 5)) lowStock++;
+      const stock = Number(p.stock) || 0;
+      invEK += stock * (Number(p.cost_price) || 0);
+      invVK += stock * (Number(p.price) || 0);
+
+      // Nutzt jetzt die neue min_stock Spalte
+      if (stock < (Number(p.min_stock) || 5)) lowStock++;
     });
 
-    const { data: salesData } = await db
-      .from("orders")
-      .select("gesamtpreis")
-      .eq("status", "COMPLETED");
+    // 2. Verkaufs-Statistiken abrufen (English Schema)
+    const { data: salesData, error: salesError } = await db
+        .from("orders")
+        .select("total_price")
+        .eq("status", "completed"); // Kleingeschrieben, passend zum Rest
 
-    // FIX: Parameter 'sum' und 'o' typisiert
+    if (salesError) throw salesError;
+
     const totalSales =
-      salesData?.reduce((sum: number, o: any) => sum + (o.gesamtpreis || 0), 0) || 0;
+        salesData?.reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0) || 0;
 
     return {
       inventoryValueEK: invEK,
@@ -207,6 +237,7 @@ export async function getAccountingStats() {
       totalSales: totalSales,
     };
   } catch (error) {
+    console.error("AETHER_ACCOUNTING_ERROR [KERNEL_CRITICAL]:", error);
     return {
       inventoryValueEK: 0,
       inventoryValueVK: 0,
@@ -236,15 +267,28 @@ export async function getSettings() {
 /**
  * IDENTITY & ACCESS MANAGEMENT
  */
+/**
+ * IDENTITY & ACCESS MANAGEMENT
+ * FIX: Explicit typing to bypass TS7006 and column mapping
+ */
 export async function getCustomerDatabase() {
   try {
     const { data, error } = await db
-      .from("customers")
-      .select(`id, name, email, status, created_at`)
-      .order("created_at", { ascending: false });
+        .from("customers")
+        .select(`id, full_name, email, tier, created_at`)
+        .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return data;
+
+    // Wir setzen (customer: any), um den TS7006 "implicit any" Fehler zu beheben
+    return (data || []).map((customer: any) => ({
+      id: customer.id,
+      name: customer.full_name, // Mapping: full_name -> name
+      email: customer.email,
+      status: customer.tier,    // Mapping: tier -> status
+      created_at: customer.created_at
+    }));
+
   } catch (error) {
     console.error("AETHER_CUSTOMER_DB_ERROR:", error);
     return [];
@@ -253,49 +297,60 @@ export async function getCustomerDatabase() {
 
 /**
  * AETHER OS: FINANCE & ANALYTICS ENGINE
+ * Übersetzt das englische DB-Schema in die deutsche Logik der App
+ * und sie nutzt zu 100% die Spalte cost_price (EK Preis)
  */
+
 export async function getProfitLossData() {
   try {
     const { data: completedOrders, error } = await db
-      .from("orders")
-      .select(`
+        .from("orders")
+        .select(`
         id,
-        gesamtpreis,
-        datum,
+        total_price,
+        order_date,
         order_items (
-          menge,
-          einzelpreis,
-          produkte ( ek_preis )
+          quantity,
+          price_at_purchase,
+          products ( 
+            cost_price 
+          )
         )
       `)
-      .eq("status", "COMPLETED")
-      .order("datum", { ascending: true });
+        .eq("status", "completed")
+        .order("order_date", { ascending: true });
 
     if (error) throw error;
 
     let totalProfit = 0;
     let totalRevenue = 0;
 
-    const chartData = completedOrders?.map((order: any) => {
-      let orderCost = 0;
-      
+    const chartData = (completedOrders || []).map((order: any) => {
+      let orderTotalCost = 0;
+
+      // Summierung der EK-Kosten für alle Positionen der Bestellung
       order.order_items?.forEach((item: any) => {
-        const ek = item.produkte?.ek_preis || 0;
-        orderCost += item.menge * ek;
+        const costPerUnit = item.products?.cost_price || 0;
+        const qty = item.quantity || 0;
+        orderTotalCost += qty * costPerUnit;
       });
 
-      const revenue = order.gesamtpreis || 0;
-      const profit = revenue - orderCost;
+      const revenue = Number(order.total_price) || 0;
+      const profit = revenue - orderTotalCost;
 
       totalProfit += profit;
       totalRevenue += revenue;
 
       return {
-        name: new Date(order.datum).toLocaleDateString("de-DE", { month: "short", day: "2-digit" }),
+        // UI-Labels bleiben für die Anzeige auf Deutsch (Monat/Tag)
+        name: new Date(order.order_date).toLocaleDateString("de-DE", {
+          month: "short",
+          day: "2-digit"
+        }),
         revenue: revenue,
         profit: profit,
       };
-    }) || [];
+    });
 
     return {
       success: true,
@@ -304,7 +359,7 @@ export async function getProfitLossData() {
       chartData,
     };
   } catch (error) {
-    console.error("AETHER_FINANCE_ERROR:", error);
+    console.error("AETHER_FINANCE_ERROR [KERNEL_FATAL]:", error);
     return {
       success: false,
       totalProfit: 0,
@@ -534,7 +589,7 @@ export async function markMessageAsRead(messageId: string) {
 
     if (error) throw error;
 
-    revalidatePath("/admin/intelligence");
+    revalidatePath("/admin/message");
     return { success: true };
   } catch (error: any) {
     console.error("AETHER_MAIL_UPDATE_ERROR:", error.message);
@@ -544,7 +599,7 @@ export async function markMessageAsRead(messageId: string) {
 
 export async function markAsRead(id: string) {
   await db.from("messages").update({ is_read: true }).eq("id", id);
-  revalidatePath("/admin/intelligence");
+  revalidatePath("/admin/message");
 }
 
 // FIX: Diese Funktion hat gefehlt!
@@ -571,72 +626,206 @@ export async function updateSettings(formData: any) {
   }
 }
 
+/**
+ * AETHER OS: PROJECT MANAGEMENT
+ * Holt alle Projekte aus der Database
+ */
 export async function getProjects() {
-  // Hier deine Supabase Logik
-  return []; 
+  try {
+    const { data, error } = await db
+        .from("projects")
+        .select("*")
+        .order("deadline", { ascending: true });
+
+    if (error) throw error;
+
+    // Wir mappen hier nichts um, da dein Schema (project_name, status, deadline)
+    // bereits perfekt ist.
+    return data || [];
+  } catch (error) {
+    console.error("AETHER_PROJECTS_FETCH_ERROR:", error);
+    return [];
+  }
 }
 
+/**
+ * AETHER OS: SUPPORT & TICKETING
+ * Holt Tickets inkl. Projekt-Zuweisung
+ */
 export async function getTickets() {
-  return [];
+  try {
+    const { data, error } = await db
+        .from("tickets")
+        .select(`
+        id,
+        subject,
+        message,
+        status,
+        created_at,
+        projects (
+          project_name
+        ),
+        users (
+          username,
+          email
+        )
+      `)
+        .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map((t: any) => ({
+      ...t,
+      // Mapping für die UI: Falls das Frontend "project" statt "projects" erwartet
+      project_name: t.projects?.project_name || "No Project",
+      user_name: t.users?.username || "System"
+    }));
+  } catch (error) {
+    console.error("AETHER_TICKETS_FETCH_ERROR:", error);
+    return [];
+  }
 }
 
 // Ändere die Funktion in deiner actions.ts zu dieser Version:
 
-export async function getProjectTasks(projectId?: string) {
+/**
+ * AETHER OS // PROJECT & PLANNER ENGINE
+ * Status: Tutti Kompletto (Fast)
+ */
+
+export async function getProjectTasks(projectId?: string | number) {
   if (!projectId) {
     console.warn("AETHER OS // getProjectTasks: No projectId provided.");
     return [];
   }
 
-  const db = await createClient();
-  const { data, error } = await db
-    .from('project_tasks')
-    .select('*')
-    .eq('project_id', projectId);
+  try {
+    // Vereinheitlicht: Wir nutzen die globale db-Instanz wie im Rest des Kernels
+    const { data, error } = await db
+        .from('project_tasks')
+        .select('*')
+        // Wir wandeln sicherheitshalber in Number um, falls ein String aus der URL kommt
+        .eq('project_id', Number(projectId));
 
-  if (error) return [];
-  return data;
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("AETHER_FETCH_TASKS_ERROR:", error);
+    return [];
+  }
 }
 
-// DAS IST DIE FEHLENDE FUNKTION AUS DEINEM ERROR
+// PROJEKT ERSTELLEN
 export async function createNewProject(data: any) {
-  console.log("AETHER OS // Creating Project", data);
-  return { success: true };
-}
+  try {
+    const { data: newProject, error } = await db
+        .from("projects")
+        .insert([
+          {
+            project_name: data.project_name,
+            description: data.description,
+            status: data.status || 'planning',
+            deadline: data.deadline,
+            budget: Number(data.budget) || 0 // Sicherstellen, dass es eine Zahl ist
+          }
+        ])
+        .select()
+        .single();
 
-/**
- * AETHER OS // PROJECT TASK ACTIONS
- * Diese Funktionen werden vom AetherPlanner benötigt
- */
+    if (error) throw error;
+
+    revalidatePath("/admin/projects");
+    return { success: true, data: newProject };
+  } catch (error: any) {
+    console.error("AETHER_PROJECT_CREATE_ERROR:", error.message);
+    return { success: false, error: error.message };
+  }
+}
 
 // TASK ERSTELLEN
 export async function createProjectTask(taskData: any) {
   try {
-    // Hier kommt später deine Supabase-Logik rein
-    // const { data, error } = await supabase.from('project_tasks').insert([taskData]);
-    console.log("AETHER OS // Task created:", taskData);
-    return { success: true, data: taskData };
-  } catch (error) {
-    return { success: false, error: "Task creation failed" };
+    const { data, error } = await db
+        .from('project_tasks')
+        .insert([
+          {
+            // Hier die Zahl-Umwandlung für das Integer-Schema
+            project_id: Number(taskData.project_id),
+            task_name: taskData.task_name,
+            status: taskData.status || 'todo',
+            priority: taskData.priority || 'medium',
+            due_date: taskData.due_date
+          }
+        ])
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    revalidatePath("/admin/projects");
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("AETHER_TASK_CREATE_ERROR:", error.message);
+    return { success: false, error: error.message };
   }
 }
 
 // TASK LÖSCHEN
-export async function deleteProjectTask(taskId: string) {
+export async function deleteProjectTask(taskId: string | number) {
   try {
-    // Hier kommt später deine Supabase-Logik rein
-    // const { error } = await supabase.from('project_tasks').delete().eq('id', taskId);
-    console.log("AETHER OS // Task deleted:", taskId);
+    const { error } = await db
+        .from('project_tasks')
+        .delete()
+        .eq('id', Number(taskId)); // Integer-Match
+
+    if (error) throw error;
+
+    revalidatePath("/admin/projects");
     return { success: true };
-  } catch (error) {
-    return { success: false, error: "Task deletion failed" };
+  } catch (error: any) {
+    console.error("AETHER_TASK_DELETE_ERROR:", error.message);
+    return { success: false, error: error.message };
   }
 }
 
-// Falls dein Planner auch Updates braucht (vorsorglich):
-export async function updateProjectTask(taskId: string, updateData: any) {
-  console.log("AETHER OS // Task updated:", taskId, updateData);
-  return { success: true };
+// TASK UPDATE
+export async function updateProjectTask(taskId: string | number, updateData: any) {
+  try {
+    const { data, error } = await db
+        .from('project_tasks')
+        .update({
+          task_name: updateData.task_name,
+          status: updateData.status,
+          priority: updateData.priority,
+          due_date: updateData.due_date
+        })
+        .eq('id', Number(taskId)) // Integer-Match
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    revalidatePath("/admin/projects");
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("AETHER_TASK_UPDATE_ERROR:", error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// PLANNER FETCH
+export async function getPlannerTasks() {
+  try {
+    const { data, error } = await db
+        .from("project_tasks")
+        .select("*, projects(project_name)");
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("AETHER_PLANNER_READ_ERROR:", error);
+    return [];
+  }
 }
 
 /**
@@ -673,48 +862,40 @@ export async function getGrowthStats() {
  */
 export async function getAIInventoryStrategy() {
   try {
-    // 1. Daten holen (Produkte inkl. Lieferanten-Verknüpfung)
+    // 1. Wir testen erst mal OHNE min_bestand, um zu sehen ob es daran liegt
     const { data: products, error } = await db
-      .from("produkte")
-      .select(`
+        .from("products")
+        .select(`
         name, 
-        lagerbestand, 
-        min_bestand, 
-        suppliers ( name, kontakt_email )
-      `);
+        stock, 
+        suppliers!fk_supplier ( name, kontakt_email )
+      `); // !fk_supplier erzwingt die Nutzung des korrekten Fremdschlüssels
 
-    if (error) throw error;
-
-    // 2. Kritische Produkte filtern
-    const lowStockItems = products?.filter(
-      (p: any) => (p.lagerbestand || 0) < (p.min_bestand || 5)
-    ) || [];
-
-    if (lowStockItems.length === 0) {
-      return {
-        status: "OPTIMAL",
-        message: "Alle Systeme im grünen Bereich. Aktuell keine Nachbestellungen erforderlich.",
-        recommendations: []
-      };
+    if (error) {
+      // Das hier wird den echten Fehler im Terminal ausspucken!
+      console.error("AETHER_DB_DETAIL:", JSON.stringify(error, null, 2));
+      throw new Error(error.message || "Unbekannter DB Fehler");
     }
 
-    // 3. Empfehlungen generieren
-    const recommendations = lowStockItems.map((p: any) => ({
-      product: p.name,
-      current: p.lagerbestand,
-      min: p.min_bestand,
-      action: `Nachbestellung einleiten bei ${p.suppliers?.name || "Standard-Lieferant"}`,
-      priority: (p.lagerbestand === 0) ? "CRITICAL" : "HIGH"
-    }));
+    const lowStockItems = products?.filter((p: any) => (p.stock || 0) < 5) || [];
 
     return {
-      status: "ACTION_REQUIRED",
-      message: `KI-Analyse: ${lowStockItems.length} Produkte unterschreiten den Mindestbestand.`,
-      recommendations
+      status: lowStockItems.length > 0 ? "ACTION_REQUIRED" : "OPTIMAL",
+      message: `KI-Analyse abgeschlossen. ${lowStockItems.length} Nodes kritisch.`,
+      recommendations: lowStockItems.map((p: any) => ({
+        product: p.name,
+        current: p.stock,
+        min: 5,
+        action: `Order bei ${p.suppliers?.name || "Standard"}`,
+        priority: p.stock === 0 ? "CRITICAL" : "HIGH"
+      }))
     };
-  } catch (error) {
-    console.error("AETHER_STRATEGY_ERROR:", error);
-    return { status: "ERROR", message: "Strategie-Engine offline.", recommendations: [] };
+
+  } catch (error: any) {
+    // Falls Turbopack hier Probleme macht, loggen wir nur den String
+    const errorMessage = error.message || "Fataler Systemfehler";
+    console.error("STRATEGY_CRASH:", errorMessage);
+    return { status: "ERROR", message: errorMessage, recommendations: [] };
   }
 }
 
@@ -922,3 +1103,9 @@ export async function updateAetherPages(formData: FormData) {
   
   return { success: true };
 }
+
+
+
+
+
+

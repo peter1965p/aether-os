@@ -26,14 +26,14 @@ export default function Navbar({ session }: { session: boolean }) {
         {/* BRANDING: THE COMPANY */}
         <Link href="/" className="flex items-center gap-3 group">
           <div className="size-10 bg-slate-800 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-90">
-            <Cpu className="text-orange-500" size={20} />
+            <Cpu className="text-orange-600" size={20} />
           </div>
           <div className="flex flex-col">
             <span className="font-black uppercase tracking-tighter text-xl text-[#ffffff] leading-none">
-              AETHER <span className="text-orange-500">//</span> <span className="font-black uppercase tracking-tighter text-xl text-[#1e5d9c] leading-none">PAEFFGEN-IT</span>
+              AETHER <span className="text-orange-600">//</span> <span className="font-black uppercase tracking-tighter text-xl text-blue-900 leading-none">PAEFFGEN-IT</span>
             </span>
             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-              OS Core Engine v4.3 <span className="text-orange-500">|</span> PLATINIUM
+              OS Core Engine v4.3 <span className="text-orange-600">|</span> PLATINIUM
             </span>
           </div>
         </Link>
@@ -42,7 +42,7 @@ export default function Navbar({ session }: { session: boolean }) {
         <div className="hidden md:flex items-center gap-10 text-[11px] font-black uppercase tracking-widest">
           <Link
             href="/"
-            className={`${isActive('/') ? 'text-orange-500' : 'text-slate-500'} hover:text-orange-500 transition-colors relative group`}
+            className={`${isActive('/') ? 'text-orange-600' : 'text-slate-500'} hover:text-orange-600 transition-colors relative group`}
           >
             Home
             <span className={`absolute -bottom-1 left-0 h-0.5 bg-red-700 transition-all ${isActive('/') ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
