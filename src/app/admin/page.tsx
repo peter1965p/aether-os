@@ -14,6 +14,7 @@ import {
   getAIInventoryStrategy, 
   getCustomerDatabase 
 } from "@/modules/inventory/actions";
+import { AiControlCenter } from "@/modules/ai/components/AiControlCenter";
 
 export default async function Dashboard() {
   // Paralleler Datenabruf für maximale Performance
@@ -79,46 +80,18 @@ export default async function Dashboard() {
         </div>
       </div>
 
-      {/* INTELLIGENCE HUB SECTION */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xs font-black uppercase tracking-[0.4em] text-blue-500 flex items-center gap-2">
-            <BrainCircuit size={14} /> AI // Strategy Analytics
-          </h2>
-          <div className="h-px flex-1 bg-blue-500/20" />
-        </div>
-
-        <div className="bg-[#0a0a0a] border border-blue-500/20 p-8 rounded-[2.5rem] relative overflow-hidden">
-            <div className={`absolute top-4 right-8 flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black tracking-tighter ${aiStrategy.status === 'ACTION_REQUIRED' ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' : 'bg-green-500/10 border-green-500/50 text-green-500'}`}>
-                {aiStrategy.status === 'ACTION_REQUIRED' ? <AlertTriangle size={10} /> : <Zap size={10} />}
-                {aiStrategy.status}
+        {/* INTELLIGENCE HUB SECTION */}
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <h2 className="text-xs font-black uppercase tracking-[0.4em] text-blue-500 flex items-center gap-2">
+                    <BrainCircuit size={14} /> AI // Strategy Analytics
+                </h2>
+                <div className="h-px flex-1 bg-blue-500/20" />
             </div>
 
-            <div className="max-w-2xl">
-                <p className="text-2xl font-black italic text-white uppercase mb-2">"{aiStrategy.message}"</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest leading-relaxed">
-                    Der AETHER-Kern analysiert permanent Lagerbestände und Lieferanten-Daten für proaktive Entscheidungen.
-                </p>
-            </div>
-
-            {aiStrategy.recommendations.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
-                    {aiStrategy.recommendations.map((rec: any, i: number) => (
-                        <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-2xl group hover:border-blue-500/50 transition-all">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-black text-blue-500 tracking-tighter uppercase">{rec.product}</span>
-                                <span className="text-[8px] text-gray-500">Prio: {rec.priority}</span>
-                            </div>
-                            <p className="text-xs font-bold text-white mb-2">{rec.action}</p>
-                            <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                                <div className={`h-full bg-blue-500 animate-pulse ${rec.priority === 'CRITICAL' ? 'w-full bg-red-500' : 'w-[40%]'}`} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            {/* ALTES STATISCHES DIV IST WEG -> DYNAMISCHE KOMPONENTE IST DA */}
+            <AiControlCenter initialStrategy={aiStrategy} />
         </div>
-      </div>
 
       {/* FINANCIAL SECTION */}
       <div className="space-y-6">
