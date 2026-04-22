@@ -6,8 +6,8 @@ import { revalidatePath } from "next/cache";
 
 // --- TYPEN ---
 type OrderResult =
-  | { success: true; orderId: number | string; status: "PENDING" | "COMPLETED" }
-  | { success: false; error: string; status?: never };
+    | { success: true; orderId: number | string; status: "pending" | "completed" } // Hier Kleinschreibung!
+    | { success: false; error: string; status?: never };
 
 // --- PRODUKT & INVENTAR LOGIK ---
 
@@ -93,75 +93,82 @@ export async function createFullProduct(data: {
 export async function getPendingOrders() {
   try {
     const { data, error } = await db
-      .from("orders")
-      .select(
-        `
-        id, datum, status,
+        .from("orders")
+        .select(
+            `
+        id, 
+        order_date, 
+        status,
         order_items (
-          menge,
-          produkte ( name )
+          quantity,
+          products ( name )
         )
       `,
-      )
-      .eq("status", "PENDING")
-      .order("datum", { ascending: false });
+        )
+        .eq("status", "pending") // Kleingeschrieben wie im Schema/Type
+        .order("order_date", { ascending: false });
 
     if (error) throw error;
 
-    return data.map((o: any) => ({
+    return (data || []).map((o: any) => ({
       id: o.id,
-      datum: o.datum,
-      produkt_name: o.order_items?.[0]?.produkte?.name || "Unbekannt",
-      menge: o.order_items?.[0]?.menge || 0,
+      datum: o.order_date, // Mapping für dein UI (falls die 'datum' erwartet)
+      produkt_name: o.order_items?.[0]?.products?.name || "Unbekannt",
+      menge: o.order_items?.[0]?.quantity || 0,
       status: o.status,
     }));
   } catch (error) {
-    console.error("AETHER_ORDERS_ERROR:", error);
+    console.error("AETHER_ORDERS_ERROR [KERNEL]:", error);
     return [];
   }
 }
 
 export async function createOrder(
-  productId: number,
-  quantity: number,
+    productId: number,
+    quantity: number,
 ): Promise<OrderResult> {
   try {
-    const { data: produkt } = await db
-      .from("produkte")
-      .select("preis")
-      .eq("id", productId)
-      .single();
+    // 1. Produkt abrufen (Achte auf 'price' statt 'preis')
+    const { data: produkt, error: pError } = await db
+        .from("products")
+        .select("price")
+        .eq("id", productId)
+        .single();
 
-    if (!produkt) throw new Error("Produkt nicht gefunden");
+    if (pError || !produkt) throw new Error("Produkt nicht gefunden");
 
+    // 2. Order erstellen (total_price statt gesamtpreis)
     const { data: order, error: oError } = await db
-      .from("orders")
-      .insert([
-        {
-          typ: "POS",
-          status: "PENDING",
-          gesamtpreis: produkt.preis * quantity,
-          datum: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single();
+        .from("orders")
+        .insert([
+          {
+            // Hinweis: 'typ' und 'datum' sehe ich nicht in deinem SQL-Schema, 
+            // ggf. nutzt du 'order_date' (Default ist eh now())
+            status: "pending",
+            total_price: produkt.price * quantity,
+          },
+        ])
+        .select()
+        .single();
 
     if (oError) throw oError;
 
-    await db.from("order_items").insert([
+    // 3. Order Items verknüpfen (Englische Spaltennamen!)
+    const { error: oiError } = await db.from("order_items").insert([
       {
         order_id: order.id,
-        produkt_id: productId,
-        menge: quantity,
-        einzelpreis: produkt.preis,
+        product_id: productId,
+        quantity: quantity,
+        price_at_purchase: produkt.price,
       },
     ]);
 
+    if (oiError) throw oiError;
+
     revalidatePath("/admin/inventory");
-    return { success: true, orderId: order.id, status: "PENDING" };
-  } catch (error) {
-    console.error("AETHER_ORDER_CREATE_ERROR:", error);
+    return { success: true, orderId: order.id, status: "pending" };
+  } catch (error: any) {
+    console.error("AETHER_ORDER_CREATE_ERROR [KERNEL]:", error.message);
     return { success: false, error: "System-Fehler bei Order-Erstellung" };
   }
 }
@@ -199,7 +206,6 @@ export async function deleteCategory(id: number) {
  */
 export async function getAccountingStats() {
   try {
-    // 1. Inventar-Werte abrufen (English Schema)
     const { data: prodData, error: prodError } = await db
         .from("products")
         .select("stock, cost_price, price, min_stock");
@@ -214,21 +220,18 @@ export async function getAccountingStats() {
       const stock = Number(p.stock) || 0;
       invEK += stock * (Number(p.cost_price) || 0);
       invVK += stock * (Number(p.price) || 0);
-
-      // Nutzt jetzt die neue min_stock Spalte
       if (stock < (Number(p.min_stock) || 5)) lowStock++;
     });
 
-    // 2. Verkaufs-Statistiken abrufen (English Schema)
     const { data: salesData, error: salesError } = await db
         .from("orders")
         .select("total_price")
-        .eq("status", "completed"); // Kleingeschrieben, passend zum Rest
+        .eq("status", "completed");
 
     if (salesError) throw salesError;
 
-    const totalSales =
-        salesData?.reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0) || 0;
+    const totalSales = salesData?.reduce((sum: number, o: any) =>
+        sum + (Number(o.total_price) || 0), 0) || 0;
 
     return {
       inventoryValueEK: invEK,
@@ -237,13 +240,8 @@ export async function getAccountingStats() {
       totalSales: totalSales,
     };
   } catch (error) {
-    console.error("AETHER_ACCOUNTING_ERROR [KERNEL_CRITICAL]:", error);
-    return {
-      inventoryValueEK: 0,
-      inventoryValueVK: 0,
-      lowStock: 0,
-      totalSales: 0,
-    };
+    console.error("AETHER_ACCOUNTING_ERROR:", error);
+    return { inventoryValueEK: 0, inventoryValueVK: 0, lowStock: 0, totalSales: 0 };
   }
 }
 
@@ -862,22 +860,20 @@ export async function getGrowthStats() {
  */
 export async function getAIInventoryStrategy() {
   try {
-    // 1. Wir testen erst mal OHNE min_bestand, um zu sehen ob es daran liegt
     const { data: products, error } = await db
         .from("products")
         .select(`
         name, 
         stock, 
+        min_stock,
         suppliers!fk_supplier ( name, kontakt_email )
-      `); // !fk_supplier erzwingt die Nutzung des korrekten Fremdschlüssels
+      `);
 
-    if (error) {
-      // Das hier wird den echten Fehler im Terminal ausspucken!
-      console.error("AETHER_DB_DETAIL:", JSON.stringify(error, null, 2));
-      throw new Error(error.message || "Unbekannter DB Fehler");
-    }
+    if (error) throw error;
 
-    const lowStockItems = products?.filter((p: any) => (p.stock || 0) < 5) || [];
+    const lowStockItems = products?.filter((p: any) =>
+        (p.stock || 0) < (p.min_stock || 5)
+    ) || [];
 
     return {
       status: lowStockItems.length > 0 ? "ACTION_REQUIRED" : "OPTIMAL",
@@ -885,17 +881,14 @@ export async function getAIInventoryStrategy() {
       recommendations: lowStockItems.map((p: any) => ({
         product: p.name,
         current: p.stock,
-        min: 5,
+        min: p.min_stock,
         action: `Order bei ${p.suppliers?.name || "Standard"}`,
         priority: p.stock === 0 ? "CRITICAL" : "HIGH"
       }))
     };
-
   } catch (error: any) {
-    // Falls Turbopack hier Probleme macht, loggen wir nur den String
-    const errorMessage = error.message || "Fataler Systemfehler";
-    console.error("STRATEGY_CRASH:", errorMessage);
-    return { status: "ERROR", message: errorMessage, recommendations: [] };
+    console.error("STRATEGY_CRASH [KERNEL]:", error.message);
+    return { status: "ERROR", message: error.message, recommendations: [] };
   }
 }
 
@@ -1103,9 +1096,3 @@ export async function updateAetherPages(formData: FormData) {
   
   return { success: true };
 }
-
-
-
-
-
-
