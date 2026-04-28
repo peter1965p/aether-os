@@ -85,18 +85,18 @@ export default async function TicketsPage() {
                         </div>
 
                         {/* Action Row */}
-                        <div className="flex gap-2">
+                        <div className="mt-5 flex gap-2 w-full">
+                            {/* LINKS: Der Execute-Status-Logik-Block */}
                             {ticket.status !== 'resolved' ? (
-                            <ExecuteButton ticketId={ticket.id} />
-                                ) : (
-                                    <div className="flex-1 accent-green-500 border border-blue-900 text-green-400 text-[10px] items-center gap-2">
-                                        Command Completed !!!
-                                    </div>
+                                <ExecuteButton ticketId={ticket.id} />
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center border border-green-500/30 bg-green-500/5 text-green-400 text-[10px] font-black uppercase tracking-widest">
+                                    <span>Command Completed !!!</span>
+                                </div>
                             )}
-                            <div className="px-4 bg-[#111] border border-gray-800 text-gray-500 hover:text-red-500 hover:border-red-500/50 transition-all">
-                                <span className="text-xs">✕</span>
-                                <TerminateButton ticketId={ticket.id}/>
-                            </div>
+
+                            {/* RECHTS: Nur der TerminateButton, keine extra Div-Hölle drumherum */}
+                            <TerminateButton ticketId={ticket.id} />
                         </div>
                     </div>
                 ))}

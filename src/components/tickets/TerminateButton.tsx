@@ -2,7 +2,7 @@
 
 import { terminateTicket } from "@/modules/inventory/actions";
 import { useState } from "react";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Skull } from "lucide-react";
 
 export function TerminateButton({ ticketId }: { ticketId: number }) {
     const [isDeleting, setIsDeleting] = useState(false);
@@ -24,7 +24,7 @@ export function TerminateButton({ ticketId }: { ticketId: number }) {
             {isDeleting ? (
                 <Loader2 className="w-3 h-3 animate-spin text-red-500" />
             ) : (
-                <span className="text-xs font-bold font-mono">✕</span>
+                <Skull className="w-4 h-4 text-gray-600 group-hover:text-red-500 transition-colors"/>
             )}
         </button>
     );
