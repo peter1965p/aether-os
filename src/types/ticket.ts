@@ -1,6 +1,6 @@
 // /types/ticket.ts
 
-export interface AetherTicket { // <--- WICHTIG: export hinzufügen!
+export interface AetherTicket {
     id: number;
     created_at: string;
     subject: string;
@@ -18,4 +18,6 @@ export interface AetherTicket { // <--- WICHTIG: export hinzufügen!
         result: string;
     } | null;
     external_sync_status?: string;
+
+    scheduled_date: string | null; // Zeitstempel setzen
 }

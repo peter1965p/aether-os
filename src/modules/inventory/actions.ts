@@ -1191,3 +1191,47 @@ export async function terminateTicket(ticketId: number) {
   revalidatePath("/admin/tickets");
   return { success: true };
 }
+
+// Ein Neues Ticket erstellen
+
+export async function createAetherTicket(formData: FormData) {
+  const supabase = await createClient();
+
+  const subject = formData.get("subject") as string;
+  const message = formData.get("message") as string;
+  const scheduled_date = formData.get("scheduled_date") as string;
+
+  // --- DER ECHTE NEURAL BRAIN UPLINK ---
+  console.log("AETHER OS // AI: Querying Neural Index for:", subject);
+
+  // Wir füttern die KI mit dem Betreff und der Nachricht
+  const fullQuery = `Analyse dieses Problems: ${subject} - ${message}. 
+                     Prüfe ob wir passende Produkte im Inventar haben oder 
+                     ob es Projekte betrifft. Gib eine kurze, knappe Diagnose.`;
+
+  const aiDiagnosis = await askAetherBrain(fullQuery);
+
+  const payload = {
+    subject,
+    message,
+    scheduled_date,
+    status: "open",
+    asset_node_id: `NODE-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+    automated_action_log: {
+      result: aiDiagnosis, // Hier landet jetzt die echte Antwort vom LlamaIndex!
+      timestamp: new Date().toISOString(),
+      source: "Aether Brain V1 (LlamaIndex)",
+      confidence_level: "DYNAMIC"
+    }
+  };
+
+  const { error } = await supabase.from("tickets").insert([payload]);
+
+  if (error) {
+    console.error("DEPLOYMENT_ERROR:", error.message);
+    return { success: false };
+  }
+
+  revalidatePath("/admin/tickets");
+  return { success: true };
+}
