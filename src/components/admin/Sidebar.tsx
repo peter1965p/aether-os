@@ -7,7 +7,7 @@ import {
   Home, FileText, MessageSquareText, Box, FolderKanban, Users,
   Truck, Landmark, BarChart3, UserCheck, ShoppingCart,
   MonitorSmartphone, Layers, Settings, Mail, ClipboardList,
-  Database, ChevronLeft, ChevronRight, MapPin, Zap, AppWindow, LayoutGrid
+  Database, ChevronLeft, ChevronRight, MapPin, Zap, AppWindow, LayoutGrid, LucideActivity
 } from "lucide-react";
 
 // 1. GLOBALER TYP FÜR DEINE MODULE
@@ -37,6 +37,7 @@ export default function Sidebar({ userSettings }: { userSettings?: any }) {
     
     { id: 'inventory', label: 'Inventory', href: '/admin/inventory', icon: Box, separator: true, isPaid: true },
     { id: 'projects', label: 'Projects', href: '/admin/projects', icon: FolderKanban, isPaid: true },
+    { id: 'tickets', label: 'Tickets', href: '/admin/tickets', icon: LucideActivity, isPaid: true },  
     { id: 'staff', label: 'Mitarbeiter', href: '/admin/users', icon: UserCheck, isInclude: true },
     { id: 'customers', label: 'Kunden', href: '/admin/customers', icon: Users, isPaid: true }, 
     { id: 'suppliers', label: 'Lieferanten', href: '/admin/suppliers', icon: Truck, isPaid: true },

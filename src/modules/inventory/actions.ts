@@ -1,7 +1,9 @@
 "use server";
 
 import db, { createClient } from "@/lib/db";
+import {askAetherBrain} from "@/modules/ai/ai.actions";
 import { revalidatePath } from "next/cache";
+
 
 
 // --- TYPEN ---
@@ -600,19 +602,21 @@ export async function markAsRead(id: string) {
   revalidatePath("/admin/message");
 }
 
-// FIX: Diese Funktion hat gefehlt!
+// update Settings
 export async function updateSettings(formData: any) {
   try {
+    // Da deine Tabelle UUIDs nutzt, suchen wir am besten über den key
+    // oder nehmen den ersten Eintrag, falls es ein globales Setup ist.
     const { error } = await db
-      .from('settings')
-      .update({
-        // Hier die Felder eintragen, die du in deinem Settings-Formular hast
-        system_name: formData.system_name,
-        security_level: formData.security_level,
-        maintenance_mode: formData.maintenance_mode,
-        // ... weitere Felder
-      })
-      .eq('id', 1); // Meistens gibt es nur eine Settings-Zeile mit ID 1
+        .from('settings')
+        .update({
+          company_name: formData.company_name,
+          primary_color: formData.primary_color,
+          support_email: formData.support_email,
+          updated_at: new Date().toISOString(),
+        })
+        .not('id', 'is', null); // Update alle (falls nur eine Zeile existiert) 
+                                // ODER .eq('id', formData.id)
 
     if (error) throw error;
 
@@ -1095,4 +1099,48 @@ export async function updateAetherPages(formData: FormData) {
   revalidatePath(`/dsp/${id}`); 
   
   return { success: true };
+}
+
+
+/**
+ * AETHER OS // FIELD SERVICE COMMAND: AUTO-INTERCEPTOR
+ * Ziel: Vollautomatische Lösung vor menschlicher Interaktion.
+ */
+export async function dispatchSmartCommand(nodeId: string, issue: string) {
+  // 1. Telemetrie simulieren (Hier kämen echte Sensordaten rein)
+  const telemetry = {
+    cpu_load: "85%",
+    last_reboot: "4 days ago", // Passt zu deiner Uptime! ;)
+    system_kernel: "CachyOS-x86_64"
+  };
+
+  // 2. Das Brain nach einem direkten Fix fragen
+  const neuralSolution = await askAetherBrain(`Node: ${nodeId}. Telemetry: ${JSON.stringify(telemetry)}. Problem: ${issue}`);
+
+  // 3. Ticket erstellen mit den NEUEN Spalten
+  const { data: ticket, error } = await db.from("tickets").insert([{
+    subject: `AUTO-COMMAND // ${nodeId}`,
+    message: issue,
+    status: neuralSolution.includes("FIX_EXECUTED") ? "RESOLVED" : "DISPATCHED",
+    asset_node_id: nodeId, // Unsere neue Spalte!
+    telemetry_data: telemetry, // Unsere neue Spalte!
+    automated_action_log: {
+      timestamp: new Date().toISOString(),
+      action: neuralSolution.includes("FIX_EXECUTED") ? "Remote Script Executed" : "Analysis Complete",
+      result: neuralSolution
+    },
+    external_sync_status: "Gepard_Obsolete" // Ein kleiner Gruß an die alte Welt
+  }]).select().single();
+
+  if (error) {
+    console.error("KERNEL_DATABASE_ERROR:", error);
+    return { success: false };
+  }
+
+  revalidatePath("/admin");
+  return {
+    success: true,
+    autoResolved: ticket.status === "RESOLVED",
+    message: "Aether OS hat die Kontrolle übernommen."
+  };
 }

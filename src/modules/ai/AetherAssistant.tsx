@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Cpu, Send, Terminal } from "lucide-react";
-import { askAetherBrain } from "@/modules/ai/ai.actions"; // Diese Action bauen wir gleich
+import { askAetherBrain } from "@/modules/ai/ai.actions"; 
 
 export default function AetherAssistant() {
     const [query, setQuery] = useState("");
