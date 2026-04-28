@@ -1238,14 +1238,14 @@ export async function createAetherTicket(formData: FormData) {
 
 export async function getRegistredUsers() {
   try {
-    const supabase = await createClient(); // Falls du den Server-Client nutzt
+    const supabase = await createClient();
 
     const { data, error } = await supabase
-        .from('profiles') // Achte darauf, dass die Tabelle in Supabase so heißt
-        .select('id');    // Wir brauchen nur die IDs zum Zählen
+        .from('users') // ÄNDERUNG: von 'profiles' auf 'users' (laut deinem DB-Schema im Screen)
+        .select('id');
 
     if (error) {
-      console.error("Fehler beim Abrufen der Identity Nodes:", error);
+      console.error("AETHER_FETCH_ERROR:", error);
       return [];
     }
 

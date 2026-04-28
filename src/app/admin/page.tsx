@@ -17,6 +17,9 @@ import {
 } from "@/modules/inventory/actions";
 import { AiControlCenter } from "@/modules/ai/components/AiControlCenter";
 
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 export default async function Dashboard() {
   // Paralleler Datenabruf für maximale Performance
   const [stats, aiStrategy, customers, users] = await Promise.all([
