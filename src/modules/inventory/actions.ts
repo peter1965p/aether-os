@@ -1144,3 +1144,50 @@ export async function dispatchSmartCommand(nodeId: string, issue: string) {
     message: "Aether OS hat die Kontrolle übernommen."
   };
 }
+
+export async function executeNeuralFix(ticketId: number) {
+  const supabase = await createClient();
+
+  console.log(`🚀 AETHER OS // EXECUTE_FIX: Triggere Node ${ticketId}`);
+
+  // Hier könnte man später echte SSH-Befehle oder API-Calls einbauen
+  // Für jetzt: Wir setzen das Ticket auf RESOLVED und loggen den Erfolg
+  const { error } = await supabase
+      .from("tickets")
+      .update({
+        status: "resolved",
+        automated_action_log: {
+          timestamp: new Date().toISOString(),
+          action: "MANUAL_FIX_EXECUTED",
+          result: "System integrity restored by Master Admin. Node stable."
+        }
+      })
+      .eq("id", ticketId);
+
+  if (error) {
+    console.error("FIX_ERROR:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  // WICHTIG: Das sorgt dafür, dass die Seite sich sofort aktualisiert!
+  revalidatePath("/admin/tickets");
+
+  return { success: true };
+}
+
+export async function terminateTicket(ticketId: number) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+      .from("tickets")
+      .delete()
+      .eq("id", ticketId);
+
+  if (error) {
+    console.error("TERMINATION_FAILED:", error.message);
+    return { success: false };
+  }
+
+  revalidatePath("/admin/tickets");
+  return { success: true };
+}

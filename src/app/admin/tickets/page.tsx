@@ -2,6 +2,8 @@ import { createClient } from "@/lib/db"; // Dein Supabase Server-Client
 import { Zap, Activity, Cpu } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import { AetherTicket} from "@/types/ticket";
+import { ExecuteButton} from "@/components/tickets/ExecuteButton";
+import {TerminateButton} from "@/components/tickets/TerminateButton";
 
 export default async function TicketsPage() {
     const supabase = await createClient();
@@ -84,12 +86,17 @@ export default async function TicketsPage() {
 
                         {/* Action Row */}
                         <div className="flex gap-2">
-                            <button className="flex-1 bg-white text-black font-black text-[10px] py-3 uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all">
-                                Execute Fix
-                            </button>
-                            <button className="px-4 bg-[#111] border border-gray-800 text-gray-500 hover:text-red-500 hover:border-red-500/50 transition-all">
+                            {ticket.status !== 'resolved' ? (
+                            <ExecuteButton ticketId={ticket.id} />
+                                ) : (
+                                    <div className="flex-1 accent-green-500 border border-blue-900 text-green-400 text-[10px] items-center gap-2">
+                                        Command Completed !!!
+                                    </div>
+                            )}
+                            <div className="px-4 bg-[#111] border border-gray-800 text-gray-500 hover:text-red-500 hover:border-red-500/50 transition-all">
                                 <span className="text-xs">✕</span>
-                            </button>
+                                <TerminateButton ticketId={ticket.id}/>
+                            </div>
                         </div>
                     </div>
                 ))}
