@@ -52,7 +52,7 @@ export default async function TicketsPage() {
                 {tickets?.map((ticket: AetherTicket) => (
                     <div
                         key={ticket.id}
-                        className="group relative bg-[#050505] border border-gray-900 rounded-none p-5 transition-all hover:border-blue-900 flex flex-col justify-between"
+                        className="group relative bg-[#050505] border border-slate-800 rounded-none p-5 transition-all hover:border-blue-900 flex flex-col justify-between"
                     >
                         <div>
                             <div className="flex justify-between items-start mb-4">

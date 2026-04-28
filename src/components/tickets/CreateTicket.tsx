@@ -12,7 +12,7 @@ export function NewTicketDispatcher() {
             {/* Der Button, der immer im Header zu sehen ist */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] py-2 px-4 uppercase tracking-[0.2em] flex items-center gap-2 transition-all border border-blue-400/50 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                className="bg-blue-900 hover:bg-blue-500 text-white font-black text-[10px] py-2 px-4 uppercase tracking-[0.2em] flex items-center gap-2 transition-all border border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
             >
                 <Plus className="w-3 h-3" /> Initialize Node
             </button>
