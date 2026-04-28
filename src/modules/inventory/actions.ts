@@ -903,22 +903,35 @@ export async function getAIInventoryStrategy() {
 export async function getSystemMetrics() {
   const db = createClient();
 
-  // 1. Parallele Abfrage der verschiedenen Datenpunkte für bessere Performance
   const [
-    { count: postsCount },
-    { count: subsCount },
-    { count: ordersCount },
-    { count: formsCount },
-    { data: hub },
-    { data: pages }
+    { count: ticketsCount },   // 1. Matcht tickets
+    { count: postsCount },     // 2. Matcht blog_posts
+    { count: subsCount },      // 3. Matcht newsletter_subs
+    { count: ordersCount },    // 4. Matcht orders
+    { count: formsCount },     // 5. Matcht form_submissions
+    { data: hub },             // 6. Matcht intelligence_hub (single)
+    { data: pagesData }                     // 7. Matcht pages mit dem Result Objekt (limit 4) - ACHTUNG: Hier kein { count }!
   ] = await Promise.all([
-    db.from('blog_posts').select('*', { count: 'exact', head: true }),
-    db.from('newsletter_subs').select('*', { count: 'exact', head: true }),
-    db.from('orders').select('*', { count: 'exact', head: true }),
-    db.from('form_submissions').select('*', { count: 'exact', head: true }),
-    db.from('intelligence_hub').select('*').single(),
-    db.from('pages').select('title, slug').limit(4)
+    db.from('tickets').select('*', { count: 'exact', head: true }),      // 1
+    db.from('blog_posts').select('*', { count: 'exact', head: true }),   // 2
+    db.from('newsletter_subs').select('*', { count: 'exact', head: true }),// 3
+    db.from('orders').select('*', { count: 'exact', head: true }),       // 4
+    db.from('form_submissions').select('*', { count: 'exact', head: true }),// 5
+    db.from('intelligence_hub').select('*').single(),                    // 6
+    db.from('pages').select('title, slug').limit(4) // 7
   ]);
+  
+  // Die Page sicher mappen
+  
+  const topPages = (pagesData || []).map((p: any) => ({
+    path: p.slug,
+    views: Math.floor(Math.random() * 5000) + 1000,
+    percentage: Math.floor(Math.random() * 60) + 30,
+  }));
+
+  // Der Rest bleibt gleich...
+  const dynamicPulse = Math.min(100, 50 + (ticketsCount || 0) * 5);
+  
 
   return {
     // Haupt-Metriken (Quick Stats)
@@ -941,10 +954,16 @@ export async function getSystemMetrics() {
         trend: hub?.strategy_mode || 'Stable', 
         color: 'text-green-500' 
       },
+      {
+        label: 'Market Pulse',
+        value: `${dynamicPulse}%`,
+        trend: ticketsCount && ticketsCount > 5 ? 'High Load' : 'Stable',
+        color: 'text-green-500'
+      },  
     ],
 
     // Top Pages Mapping - Jetzt ohne TypeScript 'any' Fehler
-    topPages: pages?.map((p: any) => ({
+    topPages: topPages?.map((p: any) => ({
       path: p.slug,
       views: Math.floor(Math.random() * 5000) + 1000, // Simulation basierend auf echten Slugs
       percentage: Math.floor(Math.random() * 60) + 30
