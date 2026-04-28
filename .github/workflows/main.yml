@@ -1,0 +1,15 @@
+name: AETHER_NEURAL_UPLINK
+
+on:
+  schedule:
+    # Alle 90 Minuten der Puls
+    - cron: '*/90 * * * *'
+  workflow_dispatch: # Erlaubt dir, den Sync manuell zu testen!
+
+jobs:
+  refine_brain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Aether API
+        run: |
+          curl -X GET "https://www.paeffgen-it.de/api/cron/sync-brain?key=${{ secrets.CRON_SECRET }}"
