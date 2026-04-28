@@ -12,16 +12,18 @@ import {
 import { 
   getAccountingStats, 
   getAIInventoryStrategy, 
-  getCustomerDatabase 
+  getCustomerDatabase,
+  getRegistredUsers  
 } from "@/modules/inventory/actions";
 import { AiControlCenter } from "@/modules/ai/components/AiControlCenter";
 
 export default async function Dashboard() {
   // Paralleler Datenabruf für maximale Performance
-  const [stats, aiStrategy, customers] = await Promise.all([
+  const [stats, aiStrategy, customers, users] = await Promise.all([
     getAccountingStats(),
     getAIInventoryStrategy(),
-    getCustomerDatabase()
+    getCustomerDatabase(), 
+    getRegistredUsers(),
   ]);
 
   return (
@@ -65,9 +67,19 @@ export default async function Dashboard() {
             <Users size={80} className="text-blue-500" />
           </div>
           <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Total Users</p>
-          <h3 className="text-5xl font-black italic text-white mb-2 uppercase">{customers.length}</h3>
+          <h3 className="text-5xl font-black italic text-white mb-2 uppercase">{users?.length || 0}</h3>
           <span className="text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em]">Regional Identity Nodes</span>
         </div>
+
+          {/* TOTAL Costumers (Identity Nodes) */}
+          <div className="bg-[#0a0a0a] border border-white/[0.05] p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-blue-500/30 transition-all">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Users size={80} className="text-blue-500" />
+              </div>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Total Customers</p>
+              <h3 className="text-5xl font-black italic text-white mb-2 uppercase">{customers.length}</h3>
+              <span className="text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em]">Regional Identity Nodes</span>
+          </div>  
 
         {/* SYSTEM PERFORMANCE */}
         <div className="bg-[#0a0a0a] border border-white/[0.05] p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-blue-500/30 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)]">

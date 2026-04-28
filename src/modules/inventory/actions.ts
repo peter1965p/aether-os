@@ -1235,3 +1235,23 @@ export async function createAetherTicket(formData: FormData) {
   revalidatePath("/admin/tickets");
   return { success: true };
 }
+
+export async function getRegistredUsers() {
+  try {
+    const supabase = await createClient(); // Falls du den Server-Client nutzt
+
+    const { data, error } = await supabase
+        .from('profiles') // Achte darauf, dass die Tabelle in Supabase so heißt
+        .select('id');    // Wir brauchen nur die IDs zum Zählen
+
+    if (error) {
+      console.error("Fehler beim Abrufen der Identity Nodes:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (e) {
+    console.error("Kernel-Fehler:", e);
+    return [];
+  }
+}
