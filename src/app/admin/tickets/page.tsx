@@ -13,12 +13,12 @@ export default async function TicketsPage() {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-4xl font-bold tracking-tighter uppercase italic">
-                        Command <span className="text-blue-500">Center</span> // Tickets
+                        Command <span className="text-blue-900">Center</span> // Tickets
                     </h1>
                     <p className="text-gray-400 text-sm mt-1">AETHER OS v16.1.6 - Neural Resolution Active</p>
                 </div>
-                <div className="bg-blue-500/10 border border-blue-500/50 px-4 py-2 rounded text-blue-400 text-xs font-mono">
-                    SYSTEM_LOAD: 0.4% | AI_SYNC: STABLE
+                <div className="bg-blue-500/10 border border-blue-900 px-4 py-2 rounded text-blue-400 text-xs font-mono">
+                    SYSTEM LOAD: 0.4% | AI SYNC: STABLE
                 </div>
             </div>
 
