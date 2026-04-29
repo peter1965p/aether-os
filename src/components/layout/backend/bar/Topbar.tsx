@@ -37,6 +37,7 @@ export default function Topbar({
     await handleLogout();
   }, []);
 
+  // 1. Der Timer: Er zählt NUR runter und resettet bei Action
   useEffect(() => {
     const resetTimer = () => setTimeLeft(300);
     window.addEventListener("mousemove", resetTimer);
@@ -44,14 +45,7 @@ export default function Topbar({
     window.addEventListener("click", resetTimer);
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          terminateSession();
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => {
@@ -60,7 +54,19 @@ export default function Topbar({
       window.removeEventListener("keydown", resetTimer);
       window.removeEventListener("click", resetTimer);
     };
-  }, [terminateSession]);
+  }, []); // Leeres Array, damit der EventListener nicht ständig neu gebunden wird
+
+// 2. Der Rausschmeißer: Reagiert auf timeLeft === 0
+  useEffect(() => {
+    if (timeLeft === 0) {
+      // Wir packen das in einen Timeout von 0, damit der Render-Zyklus 
+      // der Topbar erst mal in Ruhe abschließen kann.
+      const logoutSequence = setTimeout(() => {
+        terminateSession();
+      }, 0);
+      return () => clearTimeout(logoutSequence);
+    }
+  }, [timeLeft, terminateSession]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
