@@ -902,97 +902,103 @@ export async function getAIInventoryStrategy() {
  */
 export async function getSystemMetrics() {
   const db = createClient();
+  const startTime = Date.now();
 
+  // 1. Erweiterte Abfrage: Wir holen jetzt auch die Produkte
   const [
-    { count: ticketsCount },   // 1. Matcht tickets
-    { count: postsCount },     // 2. Matcht blog_posts
-    { count: subsCount },      // 3. Matcht newsletter_subs
-    { count: ordersCount },    // 4. Matcht orders
-    { count: formsCount },     // 5. Matcht form_submissions
-    { data: hub },             // 6. Matcht intelligence_hub (single)
-    { data: pagesData }                     // 7. Matcht pages mit dem Result Objekt (limit 4) - ACHTUNG: Hier kein { count }!
+    { count: ticketsCount },
+    { count: postsCount },
+    { count: subsCount },
+    { count: ordersCount },
+    { count: formsCount },
+    { data: hub },
+    { data: pagesData },
+    { data: productsData } // NEU: Wir holen die Bestandsdaten
   ] = await Promise.all([
-    db.from('tickets').select('*', { count: 'exact', head: true }),      // 1
-    db.from('blog_posts').select('*', { count: 'exact', head: true }),   // 2
-    db.from('newsletter_subs').select('*', { count: 'exact', head: true }),// 3
-    db.from('orders').select('*', { count: 'exact', head: true }),       // 4
-    db.from('form_submissions').select('*', { count: 'exact', head: true }),// 5
-    db.from('intelligence_hub').select('*').single(),                    // 6
-    db.from('pages').select('title, slug').limit(4) // 7
+    db.from('tickets').select('*', { count: 'exact', head: true }),
+    db.from('blog_posts').select('*', { count: 'exact', head: true }),
+    db.from('newsletter_subs').select('*', { count: 'exact', head: true }),
+    db.from('orders').select('*', { count: 'exact', head: true }),
+    db.from('form_submissions').select('*', { count: 'exact', head: true }),
+    db.from('intelligence_hub').select('*').single(),
+    db.from('pages').select('title, slug').limit(4),
+    db.from('products').select('name, stock, min_stock') // NEU: Rohdaten für Analyse
   ]);
-  
-  // Die Page sicher mappen
-  
-  const topPages = (pagesData || []).map((p: any) => ({
-    path: p.slug,
-    views: Math.floor(Math.random() * 5000) + 1000,
-    percentage: Math.floor(Math.random() * 60) + 30,
-  }));
 
-  // Der Rest bleibt gleich...
-  const dynamicPulse = Math.min(100, 50 + (ticketsCount || 0) * 5);
-  
+  const duration = Date.now() - startTime;
+
+  // 2. INVENTAR-ANALYSE (Echtzeit)
+  // Wir zählen, wie viele Produkte kritisch sind
+  const lowStockItems = productsData?.filter((p: any) => p.stock <= p.min_stock) || [];
+  const totalStock = productsData?.reduce((sum: number, p: any) => sum + (p.stock || 0), 0) || 0;
+
+  // 3. DYNAMISCHER PULSE
+  // Logik: Basis + (Tickets * 2) - (Kritische Produkte * 5)
+  // Wenn das Lager leer läuft, kriegt das System "Stress"
+  const hubPulse = hub?.market_pulse || 50;
+  const stressFactor = (lowStockItems.length * 5);
+  const dynamicPulse = Math.max(0, Math.min(100, hubPulse + (ticketsCount || 0) - stressFactor));
 
   return {
-    // Haupt-Metriken (Quick Stats)
+    responseTime: `${duration}ms`,
+
     stats: [
-      { 
-        label: 'System Nodes', 
-        value: postsCount || 0, 
-        trend: 'Database Active', 
-        color: 'text-blue-500' 
+      {
+        label: 'System Nodes',
+        value: postsCount || 0,
+        trend: `${totalStock} Units in Stock`, // Echte Bestandsanzeige
+        color: 'text-blue-500'
       },
-      { 
-        label: 'Newsletter Subs', 
-        value: subsCount || 0, 
-        trend: '+12%', 
-        color: 'text-purple-500' 
-      },
-      { 
-        label: 'Market Pulse', 
-        value: `${hub?.market_pulse || 50}%`, 
-        trend: hub?.strategy_mode || 'Stable', 
-        color: 'text-green-500' 
+      {
+        label: 'Kritische Produkte',
+        value: lowStockItems.length,
+        trend: lowStockItems.length > 0 ? 'Nachbestellen!' : 'Alles OK',
+        color: lowStockItems.length > 0 ? 'text-red-500' : 'text-green-500'
       },
       {
         label: 'Market Pulse',
         value: `${dynamicPulse}%`,
-        trend: ticketsCount && ticketsCount > 5 ? 'High Load' : 'Stable',
+        trend: hub?.strategy_mode || 'Stable',
         color: 'text-green-500'
-      },  
+      },
+      {
+        label: 'Response Time',
+        value: `${duration}ms`,
+        trend: 'Kernel-Speed',
+        color: 'text-orange-500'
+      }
     ],
 
-    // Top Pages Mapping - Jetzt ohne TypeScript 'any' Fehler
-    topPages: topPages?.map((p: any) => ({
-      path: p.slug,
-      views: Math.floor(Math.random() * 5000) + 1000, // Simulation basierend auf echten Slugs
-      percentage: Math.floor(Math.random() * 60) + 30
-    })) || [],
-
-    // Traffic Sources basierend auf System-Interaktionen
+    // Wir nutzen die echten Produktnamen als Traffic-Simulanten für die Show
     trafficSources: [
-      { 
-        source: 'Direct Kernel', 
-        visitors: subsCount || 0, 
-        iconName: 'link', 
-        color: 'text-blue-500', 
-        bg: 'bg-blue-500' 
+      {
+        source: 'Top Produkt',
+        visitors: productsData?.[0]?.stock || 0,
+        iconName: 'package',
+        color: 'text-blue-500',
+        bg: 'bg-blue-500'
       },
-      { 
-        source: 'Form Inbound', 
-        visitors: formsCount || 0, 
-        iconName: 'share', 
-        color: 'text-purple-500', 
-        bg: 'bg-purple-500' 
+      {
+        source: 'Inbound Orders',
+        visitors: ordersCount || 0,
+        iconName: 'shopping-cart',
+        color: 'text-purple-500',
+        bg: 'bg-purple-500'
       },
-      { 
-        source: 'Organic Search', 
-        visitors: Math.floor((postsCount || 0) * 1.5), 
-        iconName: 'search', 
-        color: 'text-orange-500', 
-        bg: 'bg-orange-500' 
+      {
+        source: 'Form Subs',
+        visitors: formsCount || 0,
+        iconName: 'user',
+        color: 'text-orange-500',
+        bg: 'bg-orange-500'
       },
-    ]
+    ],
+
+    topPages: (pagesData || []).map((p: any) => ({
+      path: p.slug,
+      views: Math.floor(Math.random() * 5000),
+      percentage: Math.floor(Math.random() * 100)
+    }))
   };
 }
 
