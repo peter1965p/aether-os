@@ -1,18 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 // WICHTIG: Importiere deine Logout-Action, um die Cookies WIRKLICH zu löschen
 import { handleLogout } from "@/modules/auth/actions";
 
+// Konstanten außerhalb der Komponente definieren, um Re-Creations zu vermeiden
+const LOGOUT_TIME = 15 * 60 * 1000; 
+const WARNING_TIME = 30;
+const THROTTLE_TIME = 2000;
+
 export default function SessionTimeout() {
   const [showWarning, setShowWarning] = useState(false);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(WARNING_TIME);
   const router = useRouter();
-
-  const LOGOUT_TIME = 15 * 60 * 1000;
-  const WARNING_TIME = 30;
+  
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
+  const showWarningRef = useRef(false);
 
   // Die Session-Beendigung jetzt sauber entkoppelt
   const logout = useCallback(async () => {
@@ -26,25 +32,45 @@ export default function SessionTimeout() {
     setCountdown(WARNING_TIME);
   }, []);
 
+  // Sync die Ref mit dem State
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    showWarningRef.current = showWarning;
+  }, [showWarning]);
 
+  useEffect(() => {
     const handleActivity = () => {
-      resetTimer();
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => setShowWarning(true), LOGOUT_TIME);
+      const now = Date.now();
+      
+      // Falls die Warnung schon da ist: Sofort zurücksetzen
+      if (showWarningRef.current) {
+        resetTimer();
+        lastActivityRef.current = now;
+      }
+
+      // Throttle: Den Timer nur alle 2 Sekunden neu setzen, 
+      // außer die Warnung ist gerade aktiv. Das spart CPU-Zyklen.
+      if (now - lastActivityRef.current < THROTTLE_TIME && !showWarningRef.current) {
+        return;
+      }
+      lastActivityRef.current = now;
+
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        setShowWarning(true);
+      }, LOGOUT_TIME);
     };
 
     const events = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"];
     events.forEach((e) => window.addEventListener(e, handleActivity));
 
-    timeoutId = setTimeout(() => setShowWarning(true), LOGOUT_TIME);
+    timeoutRef.current = setTimeout(() => setShowWarning(true), LOGOUT_TIME);
 
     return () => {
       events.forEach((e) => window.removeEventListener(e, handleActivity));
-      clearTimeout(timeoutId);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [resetTimer, LOGOUT_TIME]);
+    // showWarning wurde aus den Dependencies entfernt, da wir showWarningRef nutzen
+  }, [resetTimer]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;

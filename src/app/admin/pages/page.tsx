@@ -9,6 +9,7 @@ import {
   Settings2,
   Activity
 } from "lucide-react";
+import { LandingPageToggle } from "./LandingPageToggle"; // Importiere die neue Client-Komponente
 
 interface PageEntry {
   id: number;
@@ -110,18 +111,11 @@ export default async function PagesManagement() {
                   {/* Status Tags */}
                   <div className="hidden lg:flex col-span-3 items-center justify-center gap-3">
 
-                    {/* HIER WAR DER FEHLER: Das Landingpage-Signal muss ins JSX */}
-                    {page.is_landingpage && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 border border-orange-500/40 bg-orange-500/10 rounded-sm">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-orange-500"></span>
-                    </span>
-                          <span className="text-[8px] text-orange-500 font-black uppercase tracking-tighter">
-                      Live_Home
-                    </span>
-                        </div>
-                    )}
+                    {/* Landing Page Toggle */}
+                    <LandingPageToggle
+                      pageId={page.id}
+                      initialIsLandingPage={page.is_landingpage}
+                    />
 
                     {page.show_in_nav && (
                         <span className="px-2 py-1 border border-blue-500/20 text-blue-500 text-[8px] font-black uppercase tracking-tighter bg-blue-500/5">
