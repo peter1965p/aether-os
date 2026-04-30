@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getSystemMetrics } from '@/modules/inventory/actions'; // Hier muss die Action die Bot-Daten liefern
-import { Globe, Search, Link as LinkIcon, Share2, Loader2, Package, ShoppingCart, User } from 'lucide-react';
+import { Globe, Search, Link as LinkIcon, Share2, Loader2, Package, ShoppingCart, User, Activity, Zap } from 'lucide-react';
 
 // Hilfsfunktion für die Icons (da wir Strings aus der Action bekommen)
 const getIcon = (iconName: string) => {
@@ -69,17 +69,19 @@ export default function AnalyticsPage() {
   return (
     <main className="p-10 space-y-12 bg-black min-h-screen text-white">
       {/* Header mit Live-Status aus dem Intelligence Hub */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500">
-            Aether // Protocol: {data.stats[2]?.trend || 'Stable'}
-          </span>
-        </div>
-        <h1 className="text-8xl font-black italic uppercase tracking-tighter leading-none">
-          System <span className="text-zinc-900">Metrics</span>
-        </h1>
-      </section>
+        {/* Header mit Live-Status */}
+        <section>
+            <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500">
+                {/* Sicherheitscheck für data.stats */}
+                    Aether // Protocol: {data?.stats?.[2]?.trend || 'Analyzing...'}
+                </span>
+            </div>
+            <h1 className="text-8xl font-black italic uppercase tracking-tighter leading-none">
+                System <span className="text-zinc-900">Metrics</span>
+            </h1>
+        </section>
 
       {/* Live Stats Grid (Dynamisch aus DB) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -97,11 +99,17 @@ export default function AnalyticsPage() {
       {/* Traffic Pulse Chart */}
       <div className="bg-[#050505] border border-white/5 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
         <div className="flex justify-between items-start mb-12">
-           <div className="space-y-1">
-              <h3 className="text-xl font-black italic uppercase tracking-tight">Traffic Pulse</h3>
-              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest italic tracking-[0.2em]">Real-time Database Stream</p>
+           <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 group-hover:scale-110 transition-transform duration-500">
+                <Activity className="w-6 h-6 text-blue-500" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-xl font-black italic uppercase tracking-tight">Traffic Pulse</h3>
+                <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest italic tracking-[0.2em]">Real-time Database Stream</p>
+              </div>
            </div>
-           <div className="px-4 py-2 bg-blue-500/5 rounded-xl text-[10px] font-black uppercase border border-blue-500/20 tracking-[0.3em] text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+           <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/5 rounded-xl text-[10px] font-black uppercase border border-blue-500/20 tracking-[0.3em] text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+              <Zap size={12} className="animate-pulse fill-blue-500" />
               Signal Active
            </div>
         </div>
