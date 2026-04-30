@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getSystemMetrics } from '@/modules/inventory/actions';
-import { Globe, Search, Link as LinkIcon, Share2, Loader2 } from 'lucide-react';
+import { getSystemMetrics } from '@/modules/inventory/actions'; // Hier muss die Action die Bot-Daten liefern
+import { Globe, Search, Link as LinkIcon, Share2, Loader2, Package, ShoppingCart, User } from 'lucide-react';
 
 // Hilfsfunktion für die Icons (da wir Strings aus der Action bekommen)
 const getIcon = (iconName: string) => {
@@ -10,6 +10,9 @@ const getIcon = (iconName: string) => {
     case 'search': return Search;
     case 'share': return Share2;
     case 'globe': return Globe;
+    case 'package': return Package;
+    case 'shopping-cart': return ShoppingCart;
+    case 'user': return User;
     default: return LinkIcon;
   }
 };
@@ -17,6 +20,26 @@ const getIcon = (iconName: string) => {
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [pulseData, setPulseData] = useState<number[]>([40, 70, 45, 90, 65, 80, 50, 60, 85, 100, 75, 95]);
+
+  // Realistischer Traffic-Generator (Neural Pulse)
+  useEffect(() => {
+    if (loading) return;
+
+    const interval = setInterval(() => {
+      setPulseData((prev) => {
+        const newData = [...prev.slice(1)];
+        const lastValue = prev[prev.length - 1];
+        // Erzeuge eine Schwankung von -15% bis +15%, bleibe aber zwischen 20% und 100%
+        const change = Math.floor(Math.random() * 31) - 15;
+        const nextValue = Math.max(20, Math.min(100, lastValue + change));
+        newData.push(nextValue);
+        return newData;
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [loading]);
 
   useEffect(() => {
     async function loadData() {
@@ -85,10 +108,10 @@ export default function AnalyticsPage() {
 
         {/* Chart Visualisierung */}
         <div className="h-64 w-full flex items-end gap-2 px-2 border-b border-white/5 pb-2">
-          {[40, 70, 45, 90, 65, 80, 50, 60, 85, 100, 75, 95].map((h, i) => (
+          {pulseData.map((h, i) => (
             <div 
               key={i} 
-              className="flex-1 bg-gradient-to-t from-blue-600/20 to-blue-500 rounded-t-lg transition-all duration-700 ease-out group-hover:to-blue-400"
+              className="flex-1 bg-gradient-to-t from-blue-600/20 to-blue-500 rounded-t-lg transition-all duration-[1500ms] ease-in-out group-hover:to-blue-400"
               style={{ height: `${h}%` }}
             />
           ))}
@@ -132,7 +155,10 @@ export default function AnalyticsPage() {
                     <div className={`p-2 rounded-xl bg-black border border-white/5 ${source.color} group-hover:scale-110 transition-transform`}>
                       <Icon size={18} strokeWidth={2.5} />
                     </div>
-                    <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">{source.source}</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-zinc-400 uppercase tracking-widest">{source.source}</span>
+                      {source.isBot && <span className="text-[8px] text-blue-500 font-bold uppercase tracking-tighter">AI_AGENT_DETECTED</span>}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-black italic text-white">{source.visitors} Signals</span>
