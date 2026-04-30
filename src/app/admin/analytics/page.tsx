@@ -77,8 +77,7 @@ export default function AnalyticsPage() {
     }
 
     return (
-        <main className="p-10 space-y-12 bg-black min-h-screen text-white">
-            
+        <main className="p-10 space-y-12 bg-black min-h-screen text-white">            
             <section>
                 <div className="flex items-center gap-2 mb-4">
                     <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] animate-pulse" />
@@ -90,7 +89,6 @@ export default function AnalyticsPage() {
                     System <span className="text-zinc-900">Metrics</span>
                 </h1>
             </section>
-
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {data.stats.map((stat: any, i: number) => (
