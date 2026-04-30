@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import DeleteButton from './DeleteButton';
 import { getBlogPosts } from "@/modules/blog/actions";
+import { ImageIcon } from "lucide-react"; // Für den Fallback, falls kein Bild da ist
 
-// Erzwingt, dass die Seite bei jedem Request neu geladen wird (kein Cache)
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function AdminBlogPage() {
-  // Wir rufen direkt deine funktionierende Server Action auf
   const { data: posts, success } = await getBlogPosts();
 
   return (
@@ -54,17 +53,35 @@ export default async function AdminBlogPage() {
                     <p className="text-[#444444] font-black uppercase tracking-[0.3em] text-xs">
                       No Nodes Found in Cluster.
                     </p>
-                    <p className="text-[9px] text-gray-700 uppercase mt-2 italic">Waiting for incoming data packets...</p>
                   </td>
                 </tr>
             ) : (
                 posts.map((post: any, index: number) => (
                     <tr key={post.id || `post-${index}`} className="hover:bg-white/[0.01] transition-all group">
                       <td className="px-10 py-8">
-                        <p className="font-black text-white group-hover:text-[#ff4d00] transition-colors uppercase tracking-tight text-lg italic">
-                          {post.title}
-                        </p>
-                        <span className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">ID: {post.id}</span>
+                        <div className="flex items-center gap-6">
+                          {/* BILD-CONTAINER */}
+                          <div className="w-20 h-12 bg-[#050505] rounded-xl overflow-hidden border border-white/10 relative flex-shrink-0">
+                            {post.main_image ? (
+                                <img
+                                    src={post.main_image}
+                                    alt={post.title}
+                                    className="object-cover w-full h-full opacity-60 group-hover:opacity-100 transition-opacity"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-800">
+                                  <ImageIcon size={16} />
+                                </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <p className="font-black text-white group-hover:text-[#ff4d00] transition-colors uppercase tracking-tight text-lg italic leading-tight">
+                              {post.title}
+                            </p>
+                            <span className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">ID: {post.id}</span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-10 py-8">
                         <span className="px-3 py-1 bg-white/5 rounded-md font-mono text-[10px] text-gray-500 group-hover:text-gray-300 transition-colors">
@@ -83,7 +100,6 @@ export default async function AdminBlogPage() {
                               Edit_Node
                             </button>
                           </Link>
-
                           <DeleteButton id={post.id} />
                         </div>
                       </td>
