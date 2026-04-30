@@ -78,7 +78,7 @@ export default function AnalyticsPage() {
 
     return (
         <main className="p-10 space-y-12 bg-black min-h-screen text-white">
-            {/* Header Bereich */}
+            
             <section>
                 <div className="flex items-center gap-2 mb-4">
                     <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] animate-pulse" />
@@ -91,7 +91,7 @@ export default function AnalyticsPage() {
                 </h1>
             </section>
 
-            {/* Stats Grid */}
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {data.stats.map((stat: any, i: number) => (
                     <div key={i} className="bg-[#050505] border border-white/5 p-8 rounded-[2.5rem] shadow-2xl group hover:border-blue-500/20 transition-all">
