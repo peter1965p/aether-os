@@ -113,17 +113,30 @@ export default function CustomerClientContainer({
         {isAdding ? (
           <section className="relative bg-[#0a0a0a] border border-orange-500/30 rounded-[2.5rem] p-8 shadow-[0_0_40px_rgba(249,115,22,0.1)] transition-all">
             <form
-              action={async (fd) => {
-                setLoading(true);
-                const res = await registerCustomer(fd);
-                setLoading(false);
-                if (res.success) {
-                  setIsAdding(false);
-                  router.refresh();
-                } else {
-                  alert("Error: " + res.error);
-                }
-              }}
+                action={async (fd: FormData) => {
+                  setLoading(true);
+
+                  // 1. Daten aus dem FormData-Objekt extrahieren
+                  const customerData = {
+                    name: fd.get("name") as string,
+                    email: fd.get("email") as string,
+                    phone: (fd.get("phone") as string) || undefined,
+                    address: (fd.get("address") as string) || undefined,
+                  };
+
+                  // 2. Die validierten Daten an die Action übergeben
+                  const res = await registerCustomer(customerData);
+
+                  setLoading(false);
+
+                  if (res.success) {
+                    setIsAdding(false);
+                    // Optional: Toast-Benachrichtigung oder Refresh-Logik hier
+                  } else {
+                    // Fehlerbehandlung, falls die Registrierung fehlschlägt
+                    console.error("Registration failed:", res.error);
+                  }
+                }}
               className="space-y-5 h-full flex flex-col justify-between"
             >
               <div>

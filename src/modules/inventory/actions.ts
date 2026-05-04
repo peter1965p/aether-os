@@ -272,26 +272,32 @@ export async function getSettings() {
  * FIX: Explicit typing to bypass TS7006 and column mapping
  */
 export async function getCustomerDatabase() {
+  const supabase = await createClient();
+
   try {
-    const { data, error } = await db
+    // Wir fragen die Kunden ab. 
+    // WICHTIG: Prüfe, ob die Tabelle wirklich 'customers' heißt (AETHER Standard).
+    const { data, error } = await supabase
         .from("customers")
-        .select(`id, full_name, email, tier, created_at`)
+        .select("*")
         .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      // Wir werfen den Fehler bewusst, damit er unten im catch landet
+      throw error;
+    }
 
-    // Wir setzen (customer: any), um den TS7006 "implicit any" Fehler zu beheben
-    return (data || []).map((customer: any) => ({
-      id: customer.id,
-      name: customer.full_name, // Mapping: full_name -> name
-      email: customer.email,
-      status: customer.tier,    // Mapping: tier -> status
-      created_at: customer.created_at
-    }));
+    return data || [];
 
-  } catch (error) {
-    console.error("AETHER_CUSTOMER_DB_ERROR:", error);
-    return [];
+  } catch (error: any) {
+    // Detaillierte Fehlerprotokollierung für AETHER OS
+    console.error("AETHER_CUSTOMER_DB_ERROR:", {
+      code: error?.code,
+      message: error?.message || "Ein unbekannter Datenbankfehler ist aufgetreten.",
+      hint: error?.hint
+    });
+
+    return []; // Return leeres Array, damit das Dashboard nicht abstürzt
   }
 }
 

@@ -4,6 +4,9 @@ import type { NextRequest } from 'next/server';
 /**
  * AETHER OS - Unified Proxy & Traffic Middleware
  * Diese Datei regelt sowohl den Zugriffsschutz als auch das Traffic-Monitoring.
+ *
+ * WICHTIG: Wir nutzen "export default", um sicherzustellen, dass Next.js
+ * die Funktion unabhängig vom internen Namen (proxy/middleware) erkennt.
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -25,6 +28,7 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
     if (!session) {
       console.log(`🚫 [AETHER] ACCESS DENIED: ${pathname} -> Redirect to Login`);
+      // Leitet den User zur Login-Seite weiter, wenn keine Session existiert.
       return NextResponse.redirect(new URL('/login', request.url));
     }
     console.log(`🛡️ [AETHER] ADMIN CHECK: ${pathname} -> Session Active`);
@@ -42,10 +46,12 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Hier setzen wir den Default Export, um den "Missing Export" Fehler zu beheben.
+export default proxy;
+
 /**
  * Konfiguration des Matchers.
- * Wir fangen fast alles ab, außer API-Routen und statische Assets,
- * um die Logik innerhalb der Funktion zentral zu steuern.
+ * Definiert, welche Pfade durch diesen Proxy laufen.
  */
 export const config = {
   matcher: [

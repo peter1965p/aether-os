@@ -2,57 +2,69 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { loginUser } from "./lib/auth-service";
+import {redirect} from "next/navigation";
 
 /**
- * AETHER OS // AUTH ACTIONS - STABLE [2026-04-08]
- * Optimiert für Next.js 15 & CachyOS Performance
+ * AETHER OS // AUTH ACTIONS - HYBRID GATEKEEPER [2026-05-03]
+ * Zentrale Weichenstellung für Admins und Clients.
  */
-
 export async function handleLogin(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
+  // 1. KERNEL-AUTH: Ruft deinen optimierten Auth-Service auf
   const result = await loginUser(email, password);
 
-  if (result.error) {
-    redirect(`/login?error=${encodeURIComponent(result.error)}`);
+  // 2. ERROR-HANDLING: Falls die Validierung fehlschlägt
+  if (result.error || !result.success) {
+    return {
+      success: false,
+      message: result.error || "ACCESS DENIED: Credentials Invalid"
+    };
   }
 
+  // 3. SESSION-MANAGEMENT: Cookies für Sicherheit und Timer setzen
   const cookieStore = await cookies();
 
-  // DEIN TIMER-COOKIE
+  // Session-Start für deinen 5-Minuten-Inaktivitäts-Timer
   cookieStore.set("aether_session_start", Date.now().toString(), {
     path: "/",
-    httpOnly: false,
+    httpOnly: false // Muss für Client-seitiges JS lesbar sein
   });
 
-  // WICHTIG: Ein "Türsteher-Cookie" für die Middleware
-  // Wenn deine Middleware diesen Cookie sieht, lässt sie dich durch.
-  cookieStore.set("aether_admin_auth", "true", {
+  // Master-Auth-Token für die Middleware-Sperre
+  cookieStore.set("aether_auth_active", "true", {
     path: "/",
-    httpOnly: true,
-    maxAge: 60 * 60 * 2, // 2 Stunden
+    httpOnly: true, // Schutz gegen XSS
+    maxAge: 60 * 60 * 2 // 2 Stunden Gültigkeit
   });
 
-  revalidatePath("/admin"); 
-  
-  if (result.type === "admin") {
-    redirect("/admin");
-  } else {
-    redirect("/shop/profile");
-  }
+  // Cache-Validierung für das gesamte Layout
+  revalidatePath("/", "layout");
+
+  // 4. ROUTING-LOGIK: Rückgabe des Zielpfads an das Frontend
+  // Wir nutzen hier das 'target' aus dem auth-service (z.B. /admin oder /client)
+  return {
+    success: true,
+    target: result.target,
+    type: result.type,      // 'admin', 'client' oder 'dual'
+    message: "CONNECTION ESTABLISHED"
+  };
 }
 
+/**
+ * Logout-Logik: Beendet den Cloud-Uplink und löscht alle Session-Daten.
+ */
 export async function handleLogout() {
   const cookieStore = await cookies();
-  
-  // Alle relevanten Cookies entfernen
-  cookieStore.delete("aether_session_start");
-  cookieStore.delete("aether_auth_active");
-  
-  revalidatePath("/", "layout");
-  redirect("/login?status=logged_out");
+
+  // Cookie löschen
+  cookieStore.delete('aether_session_start');
+
+  console.log("🔒 [AETHER] Session terminated via handleLogout");
+
+  // Hartes Redirect, um die Client-Session zu beenden
+  redirect("/login");
 }

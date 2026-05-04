@@ -31,7 +31,6 @@ export default function SessionTimeout() {
     setShowWarning(false);
     setCountdown(WARNING_TIME);
   }, []);
-
   // Sync die Ref mit dem State
   useEffect(() => {
     showWarningRef.current = showWarning;

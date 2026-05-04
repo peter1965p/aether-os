@@ -106,9 +106,13 @@ export default function CartDrawer({
                                 <div className="flex flex-1 items-end justify-between text-[10px] font-black uppercase tracking-widest">
                                   <p className="text-white/40">Quantity <span className="text-white">{product.menge}</span></p>
                                   <button
-                                    type="button"
-                                    onClick={async () => await removeFromCartAction(product.id)}
-                                    className="text-orange-600/50 hover:text-orange-600 transition-colors flex items-center gap-1"
+                                      type="button"
+                                      onClick={async () => {
+                                        // Wir wandeln die numerische ID in einen String um, 
+                                        // damit sie zur Signatur der Server Action passt.
+                                        await removeFromCartAction(String(product.id));
+                                      }}
+                                      className="text-orange-600/50 hover:text-orange-600 transition-colors flex items-center gap-1"
                                   >
                                     <TrashIcon className="size-3" /> Remove
                                   </button>

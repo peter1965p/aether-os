@@ -8,14 +8,18 @@ export default function AddToCartButton({ productId }: { productId: number }) {
 
   const handlePress = async () => {
     setStatus('loading');
-    const result = await addToCartAction(productId);
+
+    // Wir konvertieren die productId sicher in einen String, 
+    // damit sie zur Signatur der Server Action passt.
+    const result = await addToCartAction(String(productId));
 
     if (result.success) {
       setStatus('success');
+      // Optional: Feedback nach 2 Sekunden zurücksetzen
       setTimeout(() => setStatus('idle'), 2000);
     } else {
       setStatus('error');
-      setTimeout(() => setStatus('idle'), 3000);
+      console.error("AETHER_CART_ERROR:", result.error);
     }
   };
 

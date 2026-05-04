@@ -17,9 +17,9 @@ export async function registerCustomer(formData: FormData): Promise<void> {
   try {
     // SQL-Query ohne Cite-Tags
     const query = `
-      INSERT INTO public.customers (email, full_name, password_hash) 
+      INSERT INTO public.customers (email, full_name, password_hash)
       VALUES ('${email}', '${name}', '${hash}')
-      RETURNING id;
+        RETURNING id;
     `;
 
     const res = await executeSql(query);
@@ -27,13 +27,13 @@ export async function registerCustomer(formData: FormData): Promise<void> {
     if (!res || !res.success) {
       throw new Error(res?.error || "Unknown Kernel Error");
     }
-    
+
     console.log("AETHER Identity Created: " + email);
   } catch (error: any) {
     console.error("Auth Breach / Database Error:", error);
-    
+
     if (error.message?.includes('unique constraint') || error.message?.includes('exists')) {
-        redirect('/register?error=exists');
+      redirect('/register?error=exists');
     }
     redirect('/register?error=unknown');
   }
