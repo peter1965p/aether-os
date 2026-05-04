@@ -34,7 +34,7 @@ export default async function ClientLayout({
             <div className="flex-1 flex flex-col min-w-0 bg-[#050505] relative">
 
                 {/* Topbar: Jetzt auch im Client-Dashboard sichtbar */}
-                <Topbar mode="client" />
+                <Topbar />
 
                 {/* Scrollbarer Main-Bereich */}
                 <main className="p-8 flex-1 overflow-y-auto custom-scrollbar relative z-10">

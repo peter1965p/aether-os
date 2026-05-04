@@ -1,94 +1,109 @@
 /**
- * AETHER OS // MULTI-MODE TOPBAR
- * Unterstützt Admin- und Client-Kontext durch das 'mode' Prop.
+ * AETHER OS // INTELLIGENT MULTI-MODE TOPBAR
+ *
+ * FUNKTIONEN:
+ * - Erkennt Kontext (Admin/Client) via URL-Pathname.
+ * - Inaktivitäts-Timer: 5 Min bis zum automatischen Logout.
+ * - Kontextsensitive Suche & Styling.
  */
 
 "use client";
 
 import {
   Search,
-  Bell,
   Shield,
-  Settings,
-  User,
   LogOut,
   ChevronDown,
   SearchCode,
   Clock
 } from "lucide-react";
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { handleLogout } from "@/modules/auth/actions";
 import TopBarAlerts from "@/components/layout/backend/bar/TopBarAlerts";
 
-// 1. Das Interface: Hier definieren wir 'mode' als optionalen Parameter
 interface TopbarProps {
   userEmail?: string;
   userName?: string;
-  mode?: 'admin' | 'client'; // Erlaubt 'admin' oder 'client'
 }
 
 export default function Topbar({
                                  userEmail = "admin@aether-os.com",
-                                 userName = "Admin Node_01",
-                                 mode = "admin" // Default ist admin
+                                 userName = "Admin Node_01"
                                }: TopbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [timeLeft, setTimeLeft] = useState(300);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 Minuten Initialwert
   const router = useRouter();
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Dynamische Styling-Konstante basierend auf dem Mode
-  const isClientMode = mode === "client";
-  const accentColor = isClientMode ? "text-blue-500" : "text-red-600";
-  const focusBorder = isClientMode ? "focus:border-blue-500/30" : "focus:border-red-600/30";
+  /**
+   * INTELLIGENTE KONTEXT-ERKENNUNG
+   * Nutzt useMemo, um den Modus nur bei Pfadänderung neu zu berechnen.
+   */
+  const mode = useMemo(() => {
+    return pathname.startsWith("/client") ? "client" : "admin";
+  }, [pathname]);
 
+  const isClientMode = mode === "client";
+
+  // Dynamische Styles basierend auf dem Modus
+  const focusBorder = isClientMode ? "focus:border-blue-500/30" : "focus:border-red-600/30";
+  const accentText = isClientMode ? "text-blue-500" : "text-red-600";
+
+  /**
+   * SESSION TERMINATION
+   * Beendet die Session und führt den Logout-Action aus.
+   */
   const terminateSession = useCallback(async () => {
     setIsMenuOpen(false);
     await handleLogout();
   }, []);
 
-  // Timer-Logik (unverändert übernommen)
+  /**
+   * SESSION-TIMER LOGIK (Inaktivitäts-Überwachung)
+   * Setzt den Timer bei Benutzerinteraktion zurück.
+   */
   useEffect(() => {
     const resetTimer = () => setTimeLeft(300);
-    window.addEventListener("mousemove", resetTimer);
-    window.addEventListener("keydown", resetTimer);
-    window.addEventListener("click", resetTimer);
+    const events = ["mousemove", "keydown", "click", "scroll"];
 
+    // Event-Listener für Aktivität
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    // Countdown-Intervall
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => {
       clearInterval(timer);
-      window.removeEventListener("mousemove", resetTimer);
-      window.removeEventListener("keydown", resetTimer);
-      window.removeEventListener("click", resetTimer);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
     };
   }, []);
 
+  // Automatischer Logout bei Zeitablauf
   useEffect(() => {
-    if (timeLeft === 0) {
-      const logoutSequence = setTimeout(() => {
-        terminateSession();
-      }, 0);
-      return () => clearTimeout(logoutSequence);
-    }
+    if (timeLeft === 0) terminateSession();
   }, [timeLeft, terminateSession]);
 
+  /**
+   * FORMATIERUNG DER RESTZEIT
+   */
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  /**
+   * GLOBAL SEARCH REDIRECT
+   * Leitet an /admin/search oder /client/search weiter.
+   */
   const initiateGlobalSearch = () => {
     if (searchQuery.trim().length > 1) {
       const safeQuery = encodeURIComponent(searchQuery.trim());
-      // Dynamische Suche: Clients suchen woanders als Admins
       const searchPath = isClientMode ? `/client/search` : `/admin/search`;
       router.push(`${searchPath}?q=${safeQuery}`);
     }
@@ -101,10 +116,9 @@ export default function Topbar({
         <div className="relative group w-full max-w-xl flex items-center gap-3">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
-              <Search className={`w-4 h-4 text-zinc-700 group-focus-within:${isClientMode ? 'text-blue-500' : 'text-red-600'} transition-colors`} />
+              <Search className={`w-4 h-4 text-zinc-700 group-focus-within:${accentText} transition-colors`} />
             </div>
             <input
-                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -113,7 +127,6 @@ export default function Topbar({
                 className={`w-full bg-black/40 border border-white/5 rounded-2xl py-3 pl-14 pr-12 text-[9px] font-black uppercase tracking-[0.2em] text-white placeholder-zinc-800 focus:outline-none ${focusBorder} transition-all shadow-2xl`}
             />
           </div>
-
           <button
               onClick={initiateGlobalSearch}
               className="bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border border-white/5 px-4 py-3 rounded-2xl flex items-center gap-2 transition-all active:scale-95"
@@ -142,7 +155,7 @@ export default function Topbar({
           </div>
 
           {/* System Alerts */}
-          <TopBarAlerts mode={mode} />          
+          <TopBarAlerts mode={mode} />
 
           {/* USER PROFILE */}
           <div className="relative" ref={menuRef}>
