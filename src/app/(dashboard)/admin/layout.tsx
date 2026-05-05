@@ -1,6 +1,5 @@
 import { db } from '@/lib/db'; 
 import Sidebar from "@/components/admin/Sidebar";
-import Topbar from "@/components/layout/backend/bar/Topbar";
 import SessionTimeout from "@/modules/auth/SessionTimeout";
 
 export default async function AdminLayout({
@@ -27,10 +26,7 @@ export default async function AdminLayout({
 
       {/* 3. Der Content-Wrapper: WICHTIG - Hintergrund hier nochmal erzwingen */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#050505] relative">
-        
-        {/* Topbar: Jetzt sicher eingebettet */}
-        <Topbar />
-        
+                       
         {/* Main Content Area */}
         <main className="p-8 flex-1 overflow-y-auto custom-scrollbar relative z-10">
           {children}

@@ -1,10 +1,11 @@
 /**
  * AETHER OS // ROOT LAYOUT
  * Standort: src/app/layout.tsx
- * Update: Optimierter User-Daten-Abruf aus Supabase
+ * Zweck: Zentrales Layout, Branding-Initialisierung und Session-Management.
  */
+
 import type { Metadata } from "next";
-import db from "@/lib/db";
+import db from "@/lib/db"; // Standard-Import deines Supabase-Clients
 import { Inter, Bebas_Neue, JetBrains_Mono, Montserrat, Oswald } from "next/font/google";
 import "./globals.css";
 
@@ -32,7 +33,10 @@ export default async function RootLayout({
                                          }: {
     children: React.ReactNode;
 }) {
-    // 1. BRANDING KERNEL: RGB-Werte aus der DB laden
+    /**
+     * 1. BRANDING KERNEL
+     * Lädt die visuellen Identitätsmerkmale (Farben) aus der site_settings Tabelle.
+     */
     const { data: settingsData } = await db
         .from("site_settings")
         .select("key, value")
@@ -44,23 +48,35 @@ export default async function RootLayout({
         bg: settings.find((s: any) => s.key === "bg_rgb")?.value || "5 5 5",
     };
 
-    // 2. SESSION & USER-DATEN (Supabase spezifisch)
-    // Wir holen die Session direkt über deinen db-Client
-    const { data: { session } } = await db.auth.getSession();
+    /**
+     * 2. SESSION & USER-DATEN
+     * Wir validieren die Session über getUser() für maximale Sicherheit.
+     */
+    const { data: { user } } = await db.auth.getUser();
 
-    // Bei Supabase steckt der Name oft in user_metadata oder einer Profile-Tabelle
-    // Fallback auf Email, falls kein Name gesetzt ist
-    const userName = session?.user?.user_metadata?.full_name ||
-        session?.user?.user_metadata?.name ||
-        session?.user?.email?.split('@')[0] ||
+    // Status für die NavBar festlegen
+    const sessionActive = !!user;
+
+    // Namens-Logik: Priorität auf Metadaten, Fallback auf E-Mail-Präfix
+    const userName = user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        user?.email?.split('@')[0] ||
         "Admin Node_01";
 
-    const userEmail = session?.user?.email || "news24regional@gmail.com";
+    const userEmail = user?.email || "news24regional@gmail.com";
 
     return (
         <html lang="de" className="dark">
-        <body className={`${inter.variable} ${bebas.variable} ${mono.variable} ${montserrat.variable} ${oswald.variable} min-h-screen font-sans antialiased bg-[#050505] text-white`}>
+        <body className={`
+                ${inter.variable} 
+                ${bebas.variable} 
+                ${mono.variable} 
+                ${montserrat.variable} 
+                ${oswald.variable} 
+                min-h-screen font-sans antialiased bg-[#050505] text-white
+            `}>
 
+        {/* Dynamische Injektion der Branding-Farben */}
         <style dangerouslySetInnerHTML={{ __html: `
                     :root {
                         --accent: ${colors.accent};
@@ -69,19 +85,27 @@ export default async function RootLayout({
                 `}} />
 
         <ThemeProvider>
+            {/* Analyse & Tracking */}
             <Tracker />
 
-            {/* Hier werden die echten Daten an die Navbar übergeben */}
+            /**
+            * MULTIFUNKTIONALE NAVBAR
+            * Steuert nun sowohl die Gast-Ansicht als auch das Admin-Dashboard.
+            * Die Topbar wird hiermit offiziell nicht mehr benötigt.
+            */
             <Navbar
-                session={!!session}
+                session={sessionActive}
                 userName={userName}
                 userEmail={userEmail}
             />
 
+            {/* Sicherheit: Automatischer Logout bei Inaktivität */}
             <SessionGuard />
 
+            {/* Seiteninhalt */}
             <main>{children}</main>
 
+            {/* Globaler Footer */}
             <Footer />
         </ThemeProvider>
         </body>
