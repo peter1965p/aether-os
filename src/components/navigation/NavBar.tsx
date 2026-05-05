@@ -1,7 +1,7 @@
 /**
  * AETHER OS // UNIFIED INTELLIGENT NAVIGATION
  * Pfad: src/components/navigation/NavBar.tsx
- * Update: Persistente Auth-Buttons & Admin Settings Integration
+ * Status: Finalized with Admin-Menu & Global Settings
  */
 
 "use client";
@@ -37,12 +37,12 @@ export default function NavBar({
     const pathname = usePathname();
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Hydration Guard
+    // Hydration Guard zur Vermeidung von Server/Client Mismatch
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    // Schließen des Menüs bei Klick außerhalb
+    // Schließt das Menü bei Klicks außerhalb der Komponente
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -53,7 +53,7 @@ export default function NavBar({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // Kontext-Erkennung
+    // Kontext-Erkennung (Admin vs. Client vs. Public)
     const isBackend = useMemo(() => pathname?.startsWith("/admin") || pathname?.startsWith("/client"), [pathname]);
     const isClientMode = pathname?.startsWith("/client");
     const mode = isClientMode ? "client" : "admin";
@@ -67,7 +67,7 @@ export default function NavBar({
         await handleLogout();
     }, []);
 
-    // Session Timer Logik
+    // Session Timer Logik: Reset bei Aktivität
     useEffect(() => {
         if (!session || !isBackend || !mounted) return;
         const resetTimer = () => setTimeLeft(300);
@@ -82,6 +82,7 @@ export default function NavBar({
         };
     }, [session, isBackend, mounted]);
 
+    // Automatischer Logout nach Ablauf des Timers
     useEffect(() => {
         if (timeLeft === 0 && session && isBackend && mounted) terminateSession();
     }, [timeLeft, terminateSession, session, isBackend, mounted]);
@@ -122,7 +123,7 @@ export default function NavBar({
                     </div>
                 </Link>
 
-                {/* MITTE: SUCHE (Nur im Backend aktiv) */}
+                {/* MITTE: UNIFIED SEARCH (Nur im Backend aktiv) */}
                 {isBackend && (
                     <div className="relative group w-full max-w-xl flex items-center gap-3 animate-in fade-in slide-in-from-left-4">
                         <div className="relative flex-1">
@@ -142,7 +143,7 @@ export default function NavBar({
                     </div>
                 )}
 
-                {/* RECHTS: STATUS & PERSISTENTE AUTH BUTTONS */}
+                {/* RECHTS: STATUS & ADMIN ACCESS */}
                 <div className="flex items-center gap-6 shrink-0">
 
                     {/* SYSTEM STATUS (Nur Backend) */}
@@ -158,10 +159,10 @@ export default function NavBar({
                         </div>
                     )}
 
-                    {/* AUTH AREA - GEMÄSS grafik_28.png IMMER SICHTBAR */}
+                    {/* AUTH AREA & ADMIN DROPDOWN */}
                     <div className="flex items-center gap-3" ref={menuRef}>
 
-                        {/* PERSISTENTE BUTTONS */}
+                        {/* PERSISTENTE AUTH BUTTONS (Gemäß grafik_28.png) */}
                         <div className="flex items-center gap-2">
                             <Link href="/login" className="flex items-center gap-3 bg-white/5 border border-white/5 px-5 py-2.5 rounded-xl hover:bg-white/10 transition-all group">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-white">Sign_In</span>
@@ -174,15 +175,14 @@ export default function NavBar({
                             </Link>
                         </div>
 
-                        {/* DROPDOWN TRIGGER (Nur wenn Session aktiv, für Admin-Settings) */}
+                        {/* ADMIN DROPDOWN TRIGGER (Erscheint nur bei aktiver Session) */}
                         {session && (
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="ml-2 w-10 h-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-500 hover:border-blue-500/50 transition-all relative"
+                                className="ml-2 w-10 h-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center text-zinc-500 hover:text-blue-500 hover:border-blue-500/50 transition-all relative group"
                             >
                                 <ChevronDown size={16} className={`transition-transform duration-300 ${isMenuOpen ? "rotate-180" : ""}`} />
 
-                                {/* DROPDOWN MENÜ */}
                                 {isMenuOpen && (
                                     <div className="absolute right-0 top-14 w-64 bg-[#0d0d0d] border border-white/5 rounded-2xl shadow-2xl py-3 z-[110] animate-in slide-in-from-top-2">
                                         <div className="px-6 py-3 border-b border-white/5 mb-2">
@@ -190,21 +190,22 @@ export default function NavBar({
                                             <p className="text-[10px] font-black italic text-blue-500 truncate">{userEmail}</p>
                                         </div>
 
-                                        {/* SETTINGS LINK - WIE GEFORDERT */}
+                                        {/* GLOBAL SETTINGS LINK */}
                                         <Link
                                             href="/admin/settings"
                                             onClick={() => setIsMenuOpen(false)}
-                                            className="flex items-center gap-4 px-6 py-3 text-zinc-400 hover:text-white hover:bg-white/5 transition-all group"
+                                            className="flex items-center gap-4 px-6 py-3 text-zinc-400 hover:text-white hover:bg-white/5 transition-all group/item"
                                         >
-                                            <Settings size={14} className="group-hover:rotate-90 transition-transform duration-500" />
+                                            <Settings size={14} className="group-hover/item:rotate-90 transition-transform duration-500" />
                                             <span className="text-[9px] font-black uppercase tracking-widest">Global Settings</span>
                                         </Link>
 
                                         <div className="h-[1px] bg-white/5 my-2 mx-4" />
 
+                                        {/* LOGOUT BUTTON */}
                                         <button
                                             onClick={terminateSession}
-                                            className="w-full flex items-center gap-4 px-6 py-3 text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all text-left group"
+                                            className="w-full flex items-center gap-4 px-6 py-3 text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all text-left"
                                         >
                                             <LogOut size={14} />
                                             <span className="text-[9px] font-black uppercase tracking-widest">Terminate Session</span>
