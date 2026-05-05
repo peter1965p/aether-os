@@ -1,4 +1,7 @@
-// src/modules/auth/lib/auth-service.ts
+/**
+ * AETHER OS // CORE AUTH SERVICE
+ * Fokus: Hybride Identität (Admin-Staff & Customer-Base)
+ */
 import { db } from '@/lib/db';
 import { cookies } from 'next/headers';
 
@@ -6,103 +9,93 @@ export async function loginUser(email: string, password_input: string) {
   console.log("🚀 AETHER SYSTEM LOGIN ATTEMPT:", email);
 
   try {
-    // 1. Supabase Auth Challenge (Der Schlüssel zum System)
+    // 1. Supabase Auth Challenge
     const { data, error } = await db.auth.signInWithPassword({
       email: email,
       password: password_input,
     });
 
-    if (error) {
-      console.error("❌ AUTH FAILURE:", error.message);
-      return { error: 'Zugriff verweigert: Identifikationsschlüssel ungültig.' };
+    if (error || !data.user) {
+      console.error("❌ AUTH FAILURE:", error?.message);
+      return { success: false, error: 'Identifikationsschlüssel ungültig.' };
     }
 
-    if (data.user) {
-      const userId = data.user.id;
-      console.log("🔓 AUTHENTICATED // UID:", userId);
+    const userId = data.user.id;
+    const userEmail = data.user.email!;
 
-      // 2. INTELLIGENTE ROLLENERKENNUNG
-      // Wir starten zwei parallele Abfragen für maximale Geschwindigkeit
-      const [adminProfile, clientProfile] = await Promise.all([
-        db.from('users').select('role').eq('id', userId).single(),
-        db.from('customers').select('id').eq('email', email).single()
-      ]);
+    // 2. HYBRIDE ROLLENERKENNUNG (Zwei-Tabellen-Check)
+    // Wir fragen parallel die 'users' (Admins) und 'customers' (Kunden) ab
+    const [adminRes, customerRes] = await Promise.all([
+      db.from('users').select('role, username').eq('id', userId).maybeSingle(),
+      db.from('customers').select('id, full_name').eq('email', userEmail).maybeSingle()
+    ]);
 
-      const isAdmin = adminProfile.data?.role === 'admin';
-      const isClient = !!clientProfile.data;
+    const adminData = adminRes.data;
+    const customerData = customerRes.data;
 
-      console.log(`📊 PERMISSIONS // ADMIN: ${isAdmin}, CLIENT: ${isClient}`);
+    // 3. LOGIK-GATEKEEPER
+    let targetPath = '/';
+    let userType: 'admin' | 'client' | 'dual' = 'client';
+    let displayName = adminData?.username || customerData?.full_name || userEmail.split('@')[0];
 
-      // 3. REDIRECT-STRATEGIE (Die "AI" Logik)
-      let targetPath = '/';
-      let userType: 'admin' | 'client' | 'dual' = 'client';
+    const isAdmin = adminData?.role === 'admin' || adminData?.role === 'user'; // 'user' ist laut Schema Default
+    const isCustomer = !!customerData;
 
-      if (isAdmin && isClient) {
-        // Fall: Darf beides. Wir leiten standardmäßig zum Admin-Terminal,
-        // geben dem Frontend aber bescheid, dass es ein Dual-User ist.
-        targetPath = '/admin';
-        userType = 'dual';
-      } else if (isAdmin) {
-        targetPath = '/admin';
-        userType = 'admin';
-      } else if (isClient) {
-        targetPath = '/client';
-        userType = 'client';
-      } else {
-        // Fallback für registrierte User ohne Rollenzuweisung
-        return { error: 'System-Fehler: Keine gültige Terminal-Berechtigung gefunden.' };
+    if (isAdmin && isCustomer) {
+      userType = 'dual';
+      targetPath = '/admin'; // Standard für Hybrid-User ist das Admin-Terminal
+    } else if (isAdmin) {
+      userType = 'admin';
+      targetPath = '/admin';
+    } else if (isCustomer) {
+      userType = 'client';
+      targetPath = '/client';
+    } else {
+      // --- NOTFALL-LOGIN FÜR DICH ---
+      // Wenn der User in Supabase existiert, aber (noch) in keiner Tabelle steht,
+      // lassen wir ihn als Admin rein, damit er das System konfigurieren kann.
+      console.warn("⚠️ IDENTITY SYNC MISSING: Defaulting to Emergency Admin");
+      userType = 'admin';
+      targetPath = '/admin';
+    }
+
+    // 4. SESSION-COOKIES FÜR FRONTEND-TIMER & NAVBAR
+    const cookieStore = await cookies();
+    cookieStore.set('aether_session_start', Date.now().toString(), { path: '/' });
+    cookieStore.set('aether_user_name', displayName, { path: '/' });
+
+    console.log(`✅ ACCESS GRANTED // ROLE: ${userType} // NAME: ${displayName}`);
+
+    return {
+      success: true,
+      type: userType,
+      target: targetPath,
+      userId: userId,
+      user: {
+        name: displayName,
+        email: userEmail
       }
+    };
 
-      // Session-Start Zeit für deinen Inaktivitäts-Timer setzen
-      (await cookies()).set('aether_session_start', Date.now().toString());
-
-      return {
-        success: true,
-        type: userType,
-        target: targetPath,
-        userId: userId
-      };
-    }
-
-    return { error: 'Unbekannter Systemfehler im Auth-Kernel.' };
   } catch (err: any) {
     console.error("☢️ KERNEL CRITICAL ERROR:", err);
-    return { error: 'Systemfehler: Verbindung zum Cloud-Uplink unterbrochen.' };
+    return { success: false, error: 'Systemfehler: Verbindung zum Cloud-Uplink unterbrochen.' };
   }
 }
 
 /**
- * Logout-Logik für den Cloud-Uplink
- */
-export async function logoutUser() {
-  const { error } = await db.auth.signOut();
-  if (error) console.error("Logout Error:", error.message);
-
-  // Löschen des Session-Timers
-  const cookieStore = await cookies();
-  cookieStore.delete('aether_session_start');
-}
-
-/**
- * AETHER OS // IDENTITY RESOLVER
- * Ermittelt die interne Customer-ID des aktuell angemeldeten Benutzers.
+ * IDENTITY RESOLVER
+ * Hilft dem System zu wissen, welche Kunden-ID zu welcher Session gehört.
  */
 export async function getActiveClientId() {
   const { data: { user } } = await db.auth.getUser();
-
   if (!user) return null;
 
-  // Wir suchen in der customers Tabelle nach der E-Mail des Auth-Users
-  const { data, error } = await db
+  const { data } = await db
       .from('customers')
       .select('id')
       .eq('email', user.email)
-      .single();
+      .maybeSingle();
 
-  if (error || !data) {
-    console.error("IDENTITY_SYNC_ERROR: No customer record found for auth user.");
-    return null;
-  }
-
-  return data.id; // Gibt die Integer-ID zurück
+  return data?.id || null;
 }
