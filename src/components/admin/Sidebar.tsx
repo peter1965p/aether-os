@@ -53,6 +53,8 @@ export default function Sidebar({ userSettings, isClient = false }: SidebarProps
     { id: 'accounting', label: 'Accounting', href: '/admin/accounting', icon: Landmark, isPaid: true, isAdminOnly: true, separator: true },
     { id: 'users', label: 'Mitarbeiter', href: '/admin/users', icon: UserCheck, isInclude: true, isAdminOnly: true},
     { id: 'customers', label: 'Mandanten', href: '/admin/customers', icon: Users, isInclude: true, isAdminOnly: true},
+    { id: 'orders', label: 'Bestellungen', href: '/admin/orders', icon: ShoppingCart, isInclude: true, isAdminOnly: true},
+    { id: 'mail', label: 'E-Mails', href: '/admin/mail', icon: Mail, isInclude: true, isAdminOnly: true },
     { id: 'db', label: 'Database', href: '/admin/db', icon: Database, isPaid: true, isAdminOnly: true },
   ];
 
