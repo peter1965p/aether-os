@@ -1,6 +1,13 @@
+/**
+ * AETHER OS // FRONTEND LAYOUT
+ * Pfad: src/app/layout.tsx (oder dein entsprechendes Frontend-Layout)
+ */
+
 import type { Metadata } from "next";
 import db from "@/lib/db";
-import Navbar from "@/components/layout/frontend/bar/Navbar";
+// NEUER IMPORT: Zeigt auf deine soeben erstellte Navbar
+import Navbar from "@/components/navigation/NavBar";
+// NEUER IMPORT: Zeigt auf deine soeben erstellte Footer
 import Footer from "@/components/layout/frontend/footer/Footer";
 import Tracker from "@/components/VisitorTracker";
 import {
@@ -54,23 +61,23 @@ interface SiteSetting {
 }
 
 export default async function FrontendLayout({
-  children,
-}: {
+                                               children,
+                                             }: {
   children: React.ReactNode;
 }) {
   // 1. STYLE KERNEL ABFRAGE
   const { data: settingsData } = await db
-    .from("site_settings")
-    .select("key, value")
-    .in("key", ["accent_rgb", "bg_rgb", "card_rgb"]);
+      .from("site_settings")
+      .select("key, value")
+      .in("key", ["accent_rgb", "bg_rgb", "card_rgb"]);
 
   // 2. AUTH SESSION CHECK
   const { data: { session } } = await db.auth.getSession();
   const hasSession = !!session;
 
-  // 3. COLOR MAPPING MIT TYPESCRIPT FIX (Parameter "s" typisiert)
+  // 3. COLOR MAPPING
   const settings = (settingsData as SiteSetting[]) || [];
-  
+
   const colors = {
     accent: settings.find((s: SiteSetting) => s.key === "accent_rgb")?.value || "34 197 94",
     bg: settings.find((s: SiteSetting) => s.key === "bg_rgb")?.value || "0 0 0",
@@ -78,24 +85,23 @@ export default async function FrontendLayout({
   };
 
   return (
-    <div 
-      id="aether-frontend-root"
-      className={`${inter.variable} ${bebas.variable} ${mono.variable} ${montserrat.variable} ${oswald.variable} min-h-screen font-sans antialiased selection:bg-blue-500/30`}
-      style={{
-        // @ts-ignore
-        "--accent-rgb": colors.accent,
-        "--bg-rgb": colors.bg,
-        "--card-rgb": colors.card,
-      }}
-    >
-      <style dangerouslySetInnerHTML={{ __html: `
+      <div
+          id="aether-frontend-root"
+          className={`${inter.variable} ${bebas.variable} ${mono.variable} ${montserrat.variable} ${oswald.variable} min-h-screen font-sans antialiased selection:bg-blue-500/30`}
+          style={{
+            // @ts-ignore
+            "--accent-rgb": colors.accent,
+            "--bg-rgb": colors.bg,
+            "--card-rgb": colors.card,
+          }}
+      >
+        <style dangerouslySetInnerHTML={{ __html: `
         :root {
           --accent: ${colors.accent};
           --background: ${colors.bg};
           --card: ${colors.card};
         }
         
-        /* Da dieses Layout im globalen Body sitzt, stylen wir den Body hier um */
         body { 
           background-color: rgb(${colors.bg}) !important; 
           color: white; 
@@ -113,19 +119,20 @@ export default async function FrontendLayout({
         ::selection { background: rgba(${colors.accent}, 0.3); color: white; }
       `}} />
 
-      {/* TRACKING LAYER */}
-      <Tracker />
+        {/* TRACKING LAYER */}
+        <Tracker />
 
-      {/* NAVIGATION LAYER */}
-      <Navbar session={hasSession} />
-      
-      {/* CONTENT LAYER */}
-      <main className="relative z-10 min-h-screen">
-        {children}
-      </main>
-      
-      {/* FOOTER LAYER */}
-      <Footer />
-    </div>
+        {/* NAVIGATION LAYER // Deine neue Navbar nutzt die session info */}
+        <Navbar />
+
+        {/* CONTENT LAYER */}
+        {/* pt-24 sorgt für genug Abstand zur fixierten Navbar */}
+        <main className="relative z-10 min-h-screen pt-24">
+          {children}
+        </main>
+
+        {/* FOOTER LAYER */}
+        <Footer />
+      </div>
   );
 }
