@@ -1,97 +1,66 @@
 /**
- * AETHER OS // CORE AUTH SERVICE
- * Fokus: Hybride Identität (Admin-Staff & Customer-Base)
+ * AETHER OS // AUTH-SERVICE LOGIC
+ * Pfad: src/modules/auth/lib/auth-service.ts
  */
-import { db } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { createClient } from "@/lib/db"; // Nutze den Server-Client für RSC
 
+/**
+ * LOGIN_LOGIC
+ * Kern-Validierung für den System-Zugang
+ */
 export async function loginUser(email: string, password_input: string) {
-  console.log("🚀 AETHER SYSTEM LOGIN ATTEMPT:", email);
+  const supabase = await createClient();
 
-  try {
-    // 1. Supabase Auth Challenge
-    const { data, error } = await db.auth.signInWithPassword({
-      email: email,
-      password: password_input,
-    });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password: password_input,
+  });
 
-    if (error || !data.user) {
-      console.error("❌ AUTH FAILURE:", error?.message);
-      return { success: false, error: 'Identifikationsschlüssel ungültig.' };
-    }
-
-    const userId = data.user.id;
-    const userEmail = data.user.email!;
-
-    // 2. HYBRIDE ROLLENERKENNUNG (Zwei-Tabellen-Check)
-    // Wir fragen parallel die 'users' (Admins) und 'customers' (Kunden) ab
-    const [adminRes, customerRes] = await Promise.all([
-      db.from('users').select('role, username').eq('id', userId).maybeSingle(),
-      db.from('customers').select('id, full_name').eq('email', userEmail).maybeSingle()
-    ]);
-
-    const adminData = adminRes.data;
-    const customerData = customerRes.data;
-
-    // 3. LOGIK-GATEKEEPER
-    let targetPath = '/';
-    let userType: 'admin' | 'client' | 'dual' = 'client';
-    let displayName = adminData?.username || customerData?.full_name || userEmail.split('@')[0];
-
-    const isAdmin = adminData?.role === 'admin' || adminData?.role === 'user'; // 'user' ist laut Schema Default
-    const isCustomer = !!customerData;
-
-    if (isAdmin && isCustomer) {
-      userType = 'dual';
-      targetPath = '/admin'; // Standard für Hybrid-User ist das Admin-Terminal
-    } else if (isAdmin) {
-      userType = 'admin';
-      targetPath = '/admin';
-    } else if (isCustomer) {
-      userType = 'client';
-      targetPath = '/client';
-    } else {
-      // --- NOTFALL-LOGIN FÜR DICH ---
-      // Wenn der User in Supabase existiert, aber (noch) in keiner Tabelle steht,
-      // lassen wir ihn als Admin rein, damit er das System konfigurieren kann.
-      console.warn("⚠️ IDENTITY SYNC MISSING: Defaulting to Emergency Admin");
-      userType = 'admin';
-      targetPath = '/admin';
-    }
-
-    // 4. SESSION-COOKIES FÜR FRONTEND-TIMER & NAVBAR
-    const cookieStore = await cookies();
-    cookieStore.set('aether_session_start', Date.now().toString(), { path: '/' });
-    cookieStore.set('aether_user_name', displayName, { path: '/' });
-
-    console.log(`✅ ACCESS GRANTED // ROLE: ${userType} // NAME: ${displayName}`);
-
-    return {
-      success: true,
-      type: userType,
-      target: targetPath,
-      userId: userId,
-      user: {
-        name: displayName,
-        email: userEmail
-      }
-    };
-
-  } catch (err: any) {
-    console.error("☢️ KERNEL CRITICAL ERROR:", err);
-    return { success: false, error: 'Systemfehler: Verbindung zum Cloud-Uplink unterbrochen.' };
+  if (error || !data.user) {
+    return { success: false, error: error?.message };
   }
+
+  // Hybride Rollen-Abfrage
+  const [adminRes, customerRes] = await Promise.all([
+    supabase.from('users').select('role, username').eq('id', data.user.id).maybeSingle(),
+    supabase.from('customers').select('id, full_name').eq('email', email).maybeSingle()
+  ]);
+
+  const displayName = adminRes.data?.username || customerRes.data?.full_name || email.split('@')[0];
+
+  let userType: 'admin' | 'client' | 'dual' = 'client';
+  let targetPath = '/';
+
+  if (adminRes.data && customerRes.data) {
+    userType = 'dual';
+    targetPath = '/admin';
+  } else if (adminRes.data) {
+    userType = 'admin';
+    targetPath = '/admin';
+  } else if (customerRes.data) {
+    userType = 'client';
+    targetPath = '/client';
+  }
+
+  return {
+    success: true,
+    type: userType,
+    target: targetPath,
+    user: { name: displayName, email }
+  };
 }
 
 /**
- * IDENTITY RESOLVER
- * Hilft dem System zu wissen, welche Kunden-ID zu welcher Session gehört.
+ * IDENTITY_RESOLVER
+ * Fix für den Build-Fehler: Stellt die Kunden-ID für Orders bereit
  */
 export async function getActiveClientId() {
-  const { data: { user } } = await db.auth.getUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) return null;
 
-  const { data } = await db
+  const { data } = await supabase
       .from('customers')
       .select('id')
       .eq('email', user.email)
