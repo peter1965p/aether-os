@@ -1,6 +1,6 @@
 /**
- * AETHER OS // UNIFIED NAV-KERNEL V2
- * Status: REAKTIV & MULTIFUNKTIONAL
+ * AETHER OS // UNIFIED NAV-KERNEL V3.1
+ * Fokus: Visuelle Politur & Reaktive Session-Logik
  */
 "use client";
 
@@ -22,17 +22,17 @@ export default function NavBar({ session: initialSession, userEmail: initialEmai
     const [user, setUser] = useState<any>(null);
     const pathname = usePathname();
 
-    // 01 // KONTROLLE: Wo befinden wir uns?
+    // 01 // Kontext-Erkennung
     const isBackend = pathname?.startsWith("/admin");
 
-    // 02 // REAKTIVITÄT: Session-Check bei Seitenwechsel
+    // 02 // Session-Synchronisation (Der "Geradeaus"-Check)
     useEffect(() => {
         const syncSession = async () => {
             const { data: { user: currentUser } } = await db.auth.getUser();
             if (currentUser) setUser(currentUser);
         };
         syncSession();
-        setIsMenuOpen(false); // Menü bei Navigation schließen
+        setIsMenuOpen(false);
     }, [pathname]);
 
     const activeSession = initialSession || !!user;
@@ -49,15 +49,15 @@ export default function NavBar({ session: initialSession, userEmail: initialEmai
     return (
         <nav className="fixed top-0 left-0 right-0 h-24 bg-[#050505]/80 backdrop-blur-md border-b border-white/[0.03] z-[100] px-8 flex items-center justify-between font-mono">
 
-            {/* BRANDING SECTION */}
+            {/* 03 // BRANDING: AETHER (Orange) OS (Blue) */}
             <div className="flex items-center gap-4 shrink-0">
                 <Link href="/" className="flex items-center gap-4 group">
-                    <div className="w-10 h-10 bg-[#0d0d0d] border border-white/5 rounded flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.15)] group-hover:border-blue-500 transition-all">
+                    <div className="w-10 h-10 bg-[#0d0d0d] border border-white/5 rounded flex items-center justify-center shadow-[0_0_20px_rgba(234,88,12,0.15)] group-hover:border-orange-600 transition-all">
                         <Cpu size={20} className="text-orange-600" />
                     </div>
                     <div className="hidden lg:block">
-                        <p className="text-[16px] text-orange-600 uppercase leading-none">
-                            AETHER <span className="text-blue-900">OS</span>
+                        <p className="text-[16px] font-black tracking-tighter text-white uppercase italic leading-none">
+                            <span className="text-orange-600">AETHER</span> <span className="text-blue-500">OS</span>
                         </p>
                         <p className="text-[7px] text-gray-600 uppercase tracking-[0.3em] mt-1">
                             {isBackend ? "NODE_ADMIN_ACTIVE" : "SYSTEM_STABLE"}
@@ -66,7 +66,7 @@ export default function NavBar({ session: initialSession, userEmail: initialEmai
                 </Link>
             </div>
 
-            {/* INTERFACE: SEARCH ODER NAV-LINKS */}
+            {/* 04 // INTERFACE: Suche oder Navigation */}
             <div className="flex-1 flex justify-center px-12">
                 {isBackend ? (
                     <div className="w-full max-w-md hidden md:flex relative group">
@@ -93,7 +93,7 @@ export default function NavBar({ session: initialSession, userEmail: initialEmai
                 )}
             </div>
 
-            {/* AUTH SECTION */}
+            {/* 05 // AUTH CONTROL: Jetzt ohne hässliche Unterstriche */}
             <div className="flex items-center gap-4 shrink-0">
                 {activeSession ? (
                     <div className="relative">
@@ -133,12 +133,18 @@ export default function NavBar({ session: initialSession, userEmail: initialEmai
                     </div>
                 ) : (
                     <div className="flex items-center gap-3">
+                        {/* "Sign In" Button ohne Unterstrich */}
                         <Link href="/login" className="flex items-center gap-3 bg-white/5 border border-white/5 px-6 py-3 rounded-xl hover:bg-white/10 transition-all group">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">Sign In</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">
+                                Sign In
+                            </span>
                             <User size={14} className="text-zinc-500 group-hover:text-blue-500" />
                         </Link>
+                        {/* "Join System" Button ohne Unterstrich */}
                         <Link href="/register" className="hidden sm:flex items-center gap-3 bg-blue-600/10 border border-blue-500/20 px-6 py-3 rounded-xl hover:bg-blue-600/20 transition-all group">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 group-hover:text-blue-300 transition-colors">Join System</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 group-hover:text-blue-300 transition-colors">
+                                Join System
+                            </span>
                             <UserPlus size={14} className="text-blue-500" />
                         </Link>
                     </div>
