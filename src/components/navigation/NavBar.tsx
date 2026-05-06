@@ -53,11 +53,11 @@ export default function NavBar({ session: initialSession, userEmail: initialEmai
             <div className="flex items-center gap-4 shrink-0">
                 <Link href="/" className="flex items-center gap-4 group">
                     <div className="w-10 h-10 bg-[#0d0d0d] border border-white/5 rounded flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.15)] group-hover:border-blue-500 transition-all">
-                        <Cpu size={20} className="text-blue-500" />
+                        <Cpu size={20} className="text-orange-600" />
                     </div>
                     <div className="hidden lg:block">
-                        <p className="text-[16px] font-black tracking-tighter text-white uppercase italic leading-none">
-                            AETHER <span className="text-blue-500">OS</span>
+                        <p className="text-[16px] text-orange-600 uppercase leading-none">
+                            AETHER <span className="text-blue-900">OS</span>
                         </p>
                         <p className="text-[7px] text-gray-600 uppercase tracking-[0.3em] mt-1">
                             {isBackend ? "NODE_ADMIN_ACTIVE" : "SYSTEM_STABLE"}
@@ -134,11 +134,11 @@ export default function NavBar({ session: initialSession, userEmail: initialEmai
                 ) : (
                     <div className="flex items-center gap-3">
                         <Link href="/login" className="flex items-center gap-3 bg-white/5 border border-white/5 px-6 py-3 rounded-xl hover:bg-white/10 transition-all group">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">Sign_In</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">Sign In</span>
                             <User size={14} className="text-zinc-500 group-hover:text-blue-500" />
                         </Link>
                         <Link href="/register" className="hidden sm:flex items-center gap-3 bg-blue-600/10 border border-blue-500/20 px-6 py-3 rounded-xl hover:bg-blue-600/20 transition-all group">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 group-hover:text-blue-300 transition-colors">Join_System</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-blue-400 group-hover:text-blue-300 transition-colors">Join System</span>
                             <UserPlus size={14} className="text-blue-500" />
                         </Link>
                     </div>
