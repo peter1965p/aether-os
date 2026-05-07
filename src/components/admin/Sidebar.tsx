@@ -7,7 +7,7 @@ import {
   Home, FileText, MessageSquareText, Box, FolderKanban, Users,
   Truck, Landmark, BarChart3, UserCheck, ShoppingCart,
   MonitorSmartphone, Layers, Settings, Mail, ClipboardList,
-  Database, ChevronLeft, ChevronRight, MapPin, Zap, AppWindow, LayoutGrid, LucideActivity
+  Database, ChevronLeft, ChevronRight, MapPin, Zap, AppWindow, LayoutGrid, LucideActivity, Wrench, Globe
 } from "lucide-react";
 
 // 1. ERWEITERTES INTERFACE
@@ -34,6 +34,7 @@ export default function Sidebar({ userSettings, isClient = false }: SidebarProps
   const pathname = usePathname();
 
   // 3. MODUL-KONFIGURATION
+  // @ts-ignore
   const sidebarItems: SidebarItem[] = [
     // Client & Admin Basis
     { id: 'dashboard', label: 'Dashboard', href: isClient ? '/client' : '/admin', icon: Home, isInclude: true },
@@ -55,6 +56,8 @@ export default function Sidebar({ userSettings, isClient = false }: SidebarProps
     { id: 'customers', label: 'Mandanten', href: '/admin/customers', icon: Users, isInclude: true, isAdminOnly: true},
     { id: 'orders', label: 'Bestellungen', href: '/admin/orders', icon: ShoppingCart, isInclude: true, isAdminOnly: true},
     { id: 'mail', label: 'E-Mails', href: '/admin/message', icon: Mail, isInclude: true, isAdminOnly: true },
+    { id: 'settings', label: 'Einstellungen', href: '/admin/settings', icon: Wrench, isInclude: true, isAdminOnly: true },
+    { id: 'forms', label: 'Formulare', href: '/admin/forms', icon: Globe, isInclude: true, isAdminOnly: true },
     { id: 'db', label: 'Database', href: '/admin/db', icon: Database, isPaid: true, isAdminOnly: true },
   ];
 
