@@ -4,7 +4,7 @@
  * Status: Korrigiert für Unified Nav-Kernel V4.2.2
  */
 import db from "@/lib/db";
-import Navbar from "@/components/navigation/NavBar";
+import Navbar from "@/components/navigation/frontend/NavBar";
 import Footer from "@/components/layout/frontend/footer/Footer";
 import Tracker from "@/components/VisitorTracker";
 
@@ -37,11 +37,7 @@ export default async function FrontendLayout({
                 Wir übergeben nun alle Props, die das Interface NavbarProps verlangt.
             */}
             <header className="fixed top-0 left-0 right-0 z-[100]">
-                <Navbar
-                    session={sessionActive}
-                    userName={userName}
-                    userEmail={userEmail}
-                />
+                <Navbar />
             </header>
 
             {/* 

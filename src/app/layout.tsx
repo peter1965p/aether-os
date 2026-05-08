@@ -10,7 +10,7 @@ import { Inter, Bebas_Neue, JetBrains_Mono, Montserrat, Oswald } from "next/font
 import "./globals.css";
 
 // KOMPONENTEN
-import Navbar from "@/components/navigation/NavBar";
+import Navbar from "@/components/navigation/frontend/NavBar";
 import { ThemeProvider } from "@/context/ThemeContext";
 import SessionGuard from "@/modules/auth/SessionTimeout";
 import Tracker from "@/components/VisitorTracker";
@@ -85,27 +85,15 @@ export default async function RootLayout({
                 `}} />
 
         <ThemeProvider>
-            {/* Analyse & Tracking */}
             <Tracker />
-
-            /**
-            * MULTIFUNKTIONALE NAVBAR
-            * Steuert nun sowohl die Gast-Ansicht als auch das Admin-Dashboard.
-            * Die Topbar wird hiermit offiziell nicht mehr benötigt.
-            */
-            <Navbar
-                session={sessionActive}
-                userName={userName}
-                userEmail={userEmail}
-            />
-
-            {/* Sicherheit: Automatischer Logout bei Inaktivität */}
             <SessionGuard />
+            <Navbar />
 
-            {/* Seiteninhalt */}
+            {/* TEST ZEILE */}
+            <div className="fixed top-0 left-0 w-full h-1 bg-red-500 z-[9999]"></div>
+            
+
             <main>{children}</main>
-
-            {/* Globaler Footer */}
             <Footer />
         </ThemeProvider>
         </body>

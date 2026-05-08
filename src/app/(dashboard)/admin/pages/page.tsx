@@ -10,6 +10,7 @@ import {
   Activity
 } from "lucide-react";
 import { LandingPageToggle } from "./LandingPageToggle"; // Importiere die neue Client-Komponente
+import { DeletePageButton} from "@/components/admin/DeletePageButton";
 
 interface PageEntry {
   id: number;
@@ -151,9 +152,9 @@ export default async function PagesManagement() {
                       <span className="hidden sm:inline">Modify</span>
                     </Link>
 
-                    <button className="w-10 h-10 bg-zinc-950 hover:bg-red-950/40 text-zinc-800 hover:text-red-500 transition-all border border-white/5 flex items-center justify-center">
-                      <Trash2 size={14} />
-                    </button>
+                    
+                      <DeletePageButton pageId={page.id} title={page.title}/>
+                    
                   </div>
 
                 </div>

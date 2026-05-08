@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'; 
 import Sidebar from "@/components/admin/Sidebar";
 import SessionTimeout from "@/modules/auth/SessionTimeout";
+import AdminBar from "@/components/navigation/admin/AdminNav"
+import AdminNav from "@/components/navigation/admin/AdminNav";
 
 export default async function AdminLayout({
   children,
@@ -17,6 +19,9 @@ export default async function AdminLayout({
   return (
     // Hintergrund auf der untersten Ebene fixieren
     <div className="flex min-h-screen bg-[#050505] text-white selection:bg-blue-500/30 overflow-hidden">
+
+        {/* AdminNav */}
+      <AdminNav />  
       
       {/* Dein Inaktivitäts-Schutz */}
       <SessionTimeout />

@@ -1,6 +1,7 @@
 /**
  * AETHER OS // MODULE: SETTINGS
  * Komponente für die Anzeige der Betreiberdaten (Impressum)
+ * Pfad: /modules/settings/components/OperatorIdetity.tsx
  */
 
 import { getSettings } from '@/modules/inventory/actions';

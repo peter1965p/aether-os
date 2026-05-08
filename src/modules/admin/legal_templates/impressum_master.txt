@@ -1,0 +1,15 @@
+IDENTITÄTS-PROTOKOLL // RECHTSSICHERHEIT DE
+------------------------------------------
+BETREIBER: {{company_name}}
+VERANTWORTLICH: {{owner_name}}
+ADRESSE: {{address_street}}, {{address_zip}} {{address_city}}
+KONTAKT: {{email_legal}}
+
+RECHTLICHE MUSTER-BAUSTEINE:
+- "Angaben gemäß § 5 TMG" (Zwingend erforderlich für Impressum)
+- "Haftungsausschluss (Disclaimer)"
+- "Urheberrechtshinweis"
+
+COMPLIANCE-BEDINGUNG: 
+Ein Impressum ist in Deutschland für geschäftsmäßige Online-Dienste verpflichtend. 
+Die Bezeichnung muss "Impressum" lauten oder unmittelbar als solche erkennbar sein.
