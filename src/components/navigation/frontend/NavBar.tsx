@@ -37,8 +37,8 @@ export default async function Navbar() {
                             {ownerName}
                         </span>
                     </div>
-                    <span className="text-[8px] text-zinc-500 font-bold tracking-[0.3em] uppercase">
-                        {systemDesignation} V4.3 | PLATINIUM
+                    <span className="text-[8px] text-slate-400 font-bold tracking-[0.3em] uppercase">
+                        {systemDesignation} V4.3.1 | PLATINIUM
                     </span>
                 </div>
             </Link>
