@@ -16,7 +16,7 @@ export default async function Navbar() {
     ]);
 
     // Mapping basierend auf deiner 'settings' Tabelle
-    const companyName = config?.company_name || "AETHER";
+    const companyName = config?.company_name || "AETHER OS";
     const systemDesignation = config?.system_designation || "AETHER OS";
     const ownerName = config?.owner_name || "PAEFFGEN-IT";
 
