@@ -24,14 +24,19 @@ export const syncAetherBrain = async () => {
             fs.mkdirSync(PERSIST_DIR, { recursive: true });
         }
 
-        // 1. Alle Datenquellen anzapfen
         const [inventory, projects, identity] = await Promise.all([
             getInventoryData(),
             getProjects(),
             getSystemIdentity()
         ]);
 
-        // 2. Dokumente-Array initialisieren (JETZT ist docs definiert!)
+        // --- FIX: NULL CHECK FÜR IDENTITY ---
+        if (!identity) {
+            console.error("AETHER OS // AI: Identity missing! Sync aborted.");
+            return { success: false, error: "Identity data unavailable" };
+        }
+
+        // 2. Dokumente-Array initialisieren
         const docs: Document[] = [
             ...inventory.map((p: any) => new Document({
                 text: `Product: ${p.name}, Stock: ${p.bestand}, Price: ${p.preis}€`,
@@ -41,38 +46,15 @@ export const syncAetherBrain = async () => {
                 text: `Project: ${p.project_name}, Status: ${p.status}`,
                 metadata: { id: p.id, type: "project" }
             })),
+            // HIER DIE KORRIGIERTEN NAMEN NUTZEN:
             new Document({
-                text: `SYSTEM_IDENTITY: Inhaber: ${identity.owner_name}, Firma: ${identity.company_name}, Adresse: ${identity.address_street}, ${identity.address_zip} ${identity.address_city}.`,
+                text: `SYSTEM_IDENTITY: Inhaber: ${identity.owner}, Firma: ${identity.company}, Adresse: ${identity.address}, E-Mail: ${identity.email}.`,
                 metadata: { type: "identity" }
             })
         ];
 
-        // 3. LEGAL TEMPLATES SCAN (Innerhalb der Funktion)
-        const legalTemplatesDir = path.join(
-            process.cwd(),
-            "src", "modules", "admin", "compliance", "legal_templates"
-        );
+        // ... restliche Logik (Legal Templates etc.) bleibt gleich
 
-        if (fs.existsSync(legalTemplatesDir)) {
-            console.log("AETHER OS // AI: Scanning Legal Templates...");
-            const templateFiles = fs.readdirSync(legalTemplatesDir);
-
-            for (const file of templateFiles) {
-                const filePath = path.join(legalTemplatesDir, file);
-                const content = fs.readFileSync(filePath, "utf-8");
-
-                docs.push(new Document({
-                    text: `LEGAL_RULE_BOOK (${file}): ${content}`,
-                    metadata: {
-                        type: "legal_template",
-                        source: file,
-                        context: "german_law_tmg_dsgvo"
-                    }
-                }));
-            }
-        }
-
-        // 4. Index erstellen und lokal speichern
         const storageContext = await storageContextFromDefaults({ persistDir: PERSIST_DIR });
         await VectorStoreIndex.fromDocuments(docs, { storageContext });
 

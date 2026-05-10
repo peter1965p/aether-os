@@ -21,7 +21,7 @@ export function ComplianceGuard({ page, sections, identity }: any) {
     const runCheck = async () => {
         setIsChecking(true);
         try {
-            const res = await fetch("/api/admin/compliance/check", {
+            const res = await fetch("/api/compliance/check", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ page, sections, identity })

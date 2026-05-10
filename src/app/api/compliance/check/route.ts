@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { askAetherBrain } from "@/modules/ai/Ilama-brain"; // Kleines 'l' bei llama!
+import {askAetherBrain, syncAetherBrain} from "@/modules/ai/llama-brain"; // Kleines 'l' bei llama!
 
 const s3Client = new S3Client({
     region: "eu-central-1",
