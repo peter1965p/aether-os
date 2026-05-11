@@ -1,21 +1,27 @@
 /**
  * src/components/navigation/frontend/Navbar.tsx
- * Dokumentation: Zieht Branding aus 'settings' und Links aus 'pages'.
  */
 
 import Link from "next/link";
 import { Cpu, ChevronRight } from "lucide-react";
 import { getGlobalSettings } from "@/lib/actions/settings.actions";
 import { getActiveDspNodes } from "@/lib/actions/dsp.actions";
+import db from "@/lib/db"; // Wichtig für den Cart-Fetch
+import CartNavTrigger from "./CartNavTrigger";
 
 export default async function Navbar() {
-    // Daten parallel laden
-    const [config, dspNodes] = await Promise.all([
+    // Daten parallel laden: Settings, Seiten UND Cart-Items
+    const [config, dspNodes, cartData] = await Promise.all([
         getGlobalSettings(),
-        getActiveDspNodes()
+        getActiveDspNodes(),
+        db.from("cart_items")
+            .select("quantity")
+            .eq("session_id", "SESSION_01") // Später durch dynamische Session/Auth ersetzen
     ]);
 
-    // Mapping basierend auf deiner 'settings' Tabelle
+    // Summiere die Anzahl aller Artikel im Warenkorb
+    const cartCount = cartData.data?.reduce((acc: any, item: { quantity: any; }) => acc + item.quantity, 0) || 0;
+
     const companyName = config?.company_name || "AETHER OS";
     const systemDesignation = config?.system_designation || "AETHER OS";
     const ownerName = config?.owner_name || "PAEFFGEN-IT";
@@ -54,23 +60,27 @@ export default async function Navbar() {
                         {node.name}
                     </Link>
                 ))}
-
-                {/* FESTE MODULE: Basierend auf deiner Logik */}
-                <Link href="/shop" className="text-[10px] text-blue-400 font-black tracking-[0.2em] hover:text-white">STORE</Link>
-                <Link href="/blog" className="text-[10px] text-blue-400 font-black tracking-[0.2em] hover:text-white">AETHER BLOG</Link>
+                <Link href="/shop" className="text-[10px] text-blue-400 font-black tracking-[0.2em] hover:text-white uppercase">Store</Link>
+                <Link href="/blog" className="text-[10px] text-blue-400 font-black tracking-[0.2em] hover:text-white uppercase">Aether Blog</Link>
             </div>
 
-            {/* SYSTEM ACCESS */}
-            <Link
-                href="/admin"
-                className="flex items-center gap-2 bg-white/5 border border-white/10 hover:border-blue-500/50 px-5 py-2 rounded-lg transition-all group"
-            >
-                <Cpu size={14} className="text-blue-500 group-hover:animate-pulse" />
-                <span className="text-[10px] text-white font-black uppercase tracking-widest italic">
-                    Login Kernel
-                </span>
-                <ChevronRight size={12} className="text-zinc-600 group-hover:text-blue-500 transition-transform group-hover:translate-x-1" />
-            </Link>
+            {/* SYSTEM ACCESS & WARENKORB */}
+            <div className="flex items-center gap-4">
+
+                {/* DER CONRAD-TRIGGER */}
+                <CartNavTrigger initialCount={cartCount} />
+
+                <Link
+                    href="/admin"
+                    className="flex items-center gap-2 bg-white/5 border border-white/10 hover:border-blue-500/50 px-5 py-2 rounded-lg transition-all group"
+                >
+                    <Cpu size={14} className="text-blue-500 group-hover:animate-pulse" />
+                    <span className="text-[10px] text-white font-black uppercase tracking-widest italic">
+                        Login Kernel
+                    </span>
+                    <ChevronRight size={12} className="text-zinc-600 group-hover:text-blue-500 transition-transform group-hover:translate-x-1" />
+                </Link>
+            </div>
         </nav>
     );
 }

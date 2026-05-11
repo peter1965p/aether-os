@@ -910,7 +910,8 @@ export async function getSystemMetrics() {
   const db = createClient();
   const startTime = Date.now();
 
-  // 1. Erweiterte Abfrage: Wir holen jetzt auch die Produkte
+  // 1. MASSIVE PARALLEL FETCH
+  // Wir holen ALLES: Tickets, Content, Subs, Orders, Forms, AI-Hub, Pages und Produkte
   const [
     { count: ticketsCount },
     { count: postsCount },
@@ -919,7 +920,7 @@ export async function getSystemMetrics() {
     { count: formsCount },
     { data: hub },
     { data: pagesData },
-    { data: productsData } // NEU: Wir holen die Bestandsdaten
+    { data: productsData }
   ] = await Promise.all([
     db.from('tickets').select('*', { count: 'exact', head: true }),
     db.from('blog_posts').select('*', { count: 'exact', head: true }),
@@ -928,58 +929,71 @@ export async function getSystemMetrics() {
     db.from('form_submissions').select('*', { count: 'exact', head: true }),
     db.from('intelligence_hub').select('*').single(),
     db.from('pages').select('title, slug').limit(4),
-    db.from('products').select('name, stock, min_stock') // NEU: Rohdaten für Analyse
+    db.from('products').select('name, stock, min_stock')
   ]);
 
   const duration = Date.now() - startTime;
 
-  // 2. INVENTAR-ANALYSE (Echtzeit)
-  // Wir zählen, wie viele Produkte kritisch sind
+  // 2. INVENTAR-ANALYSE (Echtzeit-Stress-Check)
+  // Wir filtern Produkte, deren Bestand <= Mindestbestand ist
   const lowStockItems = productsData?.filter((p: any) => p.stock <= p.min_stock) || [];
   const totalStock = productsData?.reduce((sum: number, p: any) => sum + (p.stock || 0), 0) || 0;
 
-  // 3. DYNAMISCHER PULSE
-  // Logik: Basis + (Tickets * 2) - (Kritische Produkte * 5)
-  // Wenn das Lager leer läuft, kriegt das System "Stress"
-  const hubPulse = hub?.market_pulse || 50;
-  const stressFactor = (lowStockItems.length * 5);
-  const dynamicPulse = Math.max(0, Math.min(100, hubPulse + (ticketsCount || 0) - stressFactor));
+  // 3. DYNAMISCHE PULSE LOGIK (Der Herzschlag des Systems)
+  // Formel: Basis-Pulse aus Hub + (Tickets erhöhen Stress) - (Kritische Produkte erzeugen Warn-Druck)
+  const basePulse = hub?.market_pulse || 50;
+  const ticketStress = (ticketsCount || 0) * 2;
+  const inventoryStress = (lowStockItems.length * 5);
+
+  // Der Wert bleibt immer zwischen 0 und 100
+  const dynamicPulse = Math.max(0, Math.min(100, basePulse + ticketStress + inventoryStress));
+
+  // 4. AUTOMATISCHER SENTINEL-TRIGGER
+  // Wenn kritische Zustände herrschen, schießen wir direkt eine Notification in die Glocke
+  if (lowStockItems.length > 5) {
+    await db.from('notifications').insert([{
+      source: 'ADMIN',
+      type: 'SECURITY',
+      msg: `KRITISCHER LAGERSTAND: ${lowStockItems.length} Nodes unter Minimum! System-Load steigt.`
+    }]);
+  }
 
   return {
     responseTime: `${duration}ms`,
 
+    // Die Stats für deine Karten im Dashboard
     stats: [
       {
         label: 'System Nodes',
         value: postsCount || 0,
-        trend: `${totalStock} Units in Stock`, // Echte Bestandsanzeige
+        trend: `${totalStock} Units in Stock`,
         color: 'text-blue-500'
       },
       {
         label: 'Kritische Produkte',
         value: lowStockItems.length,
-        trend: lowStockItems.length > 0 ? 'Nachbestellen!' : 'Alles OK',
+        trend: lowStockItems.length > 0 ? 'RE-STOCK REQUIRED' : 'STABLE',
         color: lowStockItems.length > 0 ? 'text-red-500' : 'text-green-500'
       },
       {
         label: 'Market Pulse',
         value: `${dynamicPulse}%`,
-        trend: hub?.strategy_mode || 'Stable',
-        color: 'text-green-500'
+        trend: hub?.strategy_mode || 'AUTONOMOUS',
+        color: dynamicPulse > 80 ? 'text-red-500' : 'text-green-500'
       },
       {
         label: 'Response Time',
         value: `${duration}ms`,
-        trend: 'Kernel-Speed',
+        trend: 'KERNEL SPEED',
         color: 'text-orange-500'
       }
     ],
 
-    // Wir nutzen die echten Produktnamen als Traffic-Simulanten für die Show
+    // Traffic-Simulanten basierend auf echten Daten
     trafficSources: [
       {
-        source: 'Top Produkt',
-        visitors: productsData?.[0]?.stock || 0,
+        source: 'Inventory Flow',
+        visitors: totalStock,
         iconName: 'package',
         color: 'text-blue-500',
         bg: 'bg-blue-500'
@@ -992,17 +1006,18 @@ export async function getSystemMetrics() {
         bg: 'bg-purple-500'
       },
       {
-        source: 'Form Subs',
-        visitors: formsCount || 0,
-        iconName: 'user',
-        color: 'text-orange-500',
-        bg: 'bg-orange-500'
-      },
+        source: 'Support Tickets',
+        visitors: ticketsCount || 0,
+        iconName: 'alert-circle',
+        color: 'text-red-500',
+        bg: 'bg-red-500'
+      }
     ],
 
+    // Die Top Pages aus der DB für das Mini-Table im Dashboard
     topPages: (pagesData || []).map((p: any) => ({
       path: p.slug,
-      views: Math.floor(Math.random() * 5000),
+      views: Math.floor(Math.random() * 5000), // Hier könnte man später echte Views tracken
       percentage: Math.floor(Math.random() * 100)
     }))
   };

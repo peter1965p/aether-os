@@ -46,7 +46,7 @@ export default function ShopClientWrapper({
     if (
       confirm("DANGER: Confirm System Deletion? This action is irreversible.")
     ) {
-      const success = await deleteProductFromDB(id);
+      const success = await deleteProductFromDB(Number(id));
       if (success) {
         window.location.reload();
       }

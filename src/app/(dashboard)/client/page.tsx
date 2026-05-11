@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Package, Truck, XCircle, LayoutDashboard, History, FileText } from 'lucide-react';
 // Importiere die Action UND den Typ Order
-import { getRecentOrders, type Order } from '@/modules/orders/actions';
+import { getRecentOrders, type Order } from '@/modules/shop/actions';
 
 export default function ClientDashboardPage() {
   const [loading, setLoading] = useState(true);

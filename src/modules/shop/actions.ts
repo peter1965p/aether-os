@@ -1,217 +1,242 @@
 /**
- * AETHER OS // PRODUCT & TRANSACTION KERNEL
- * Status: Supabase PostgreSQL (Synchronized)
+ * AETHER OS // UNIFIED SHOP & ORDER KERNEL
+ * Full Integration: Cart, Transactions, Admin, Orders & Sentinel-Uplink
  */
 
 "use server";
 
-import db, {createClient} from "@/lib/db";
+import db from "@/lib/db"; // Dein Standard-Client
+import { createClient } from '@/lib/db'; // Für Auth-spezifische Abfragen (aus orders)
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { randomUUID, randomBytes } from "crypto";
+import { triggerSentinelNotification } from "@/modules/notifications/actions";
 
-/* --- HELPER: DATA CLEANING --- */
+/* --- 1. INTERFACES (Wichtig für das Dashboard) --- */
+
+export interface OrderItem {
+  id: number;
+  product_id: number;
+  quantity: number;
+  price_at_purchase: number;
+  product_name?: string;
+}
+
+export interface Order {
+  id: number;
+  customer_id: number | null;
+  order_date: string;
+  status: string;
+  total_price: number;
+  items?: OrderItem[];
+}
+
+/* --- 2. CORE HELPERS --- */
+
 const parsePrice = (price: any): number => {
   if (typeof price === 'number') return price;
-  const cleaned = price.toString().replace("€", "").replace(",", ".").trim();
+  const cleaned = price?.toString().replace("€", "").replace(",", ".").trim() || "0";
   return parseFloat(cleaned) || 0;
 };
 
-/* --- PRODUCT OPERATIONS --- */
+async function getOrCreateSessionId(): Promise<string> {
+  const cookieStore = await cookies();
+  const existingSession = cookieStore.get("aether_session_id")?.value;
+  if (existingSession) return existingSession;
 
-export async function getAllProducts() {
-  try {
-    const { data: products, error } = await db
-        .from("products")
-        .select("*")
-        .order("id", { ascending: false });
-
-    if (error) return { success: false, error: error.message };
-    return { success: true, data: products };
-  } catch (error: any) {
-    return { success: false, error: "Systemfehler beim Abrufen der Produkte." };
-  }
+  const newSessionId = randomUUID();
+  cookieStore.set("aether_session_id", newSessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/",
+  });
+  return newSessionId;
 }
 
-export async function saveProductToDB(data: any) {
-  // Early Return statt Throw
-  if (!data.name || !data.price) return { success: false, error: "Pflichtfelder fehlen." };
+/* --- 3. CART OPERATIONS --- */
 
+export async function addToCartAction(productId: number) {
   try {
-    const categoryMap: Record<string, number> = {
-      ACCESSOIRES: 1, HARDWARE: 2, MERCHANDISE: 3, SOFTWARE: 4,
-    };
-    const categoryId = categoryMap[data.category?.toUpperCase()] || 1;
+    const sessionId = await getOrCreateSessionId();
+    const { error } = await db.from('cart_items').insert([{ product_id: productId, quantity: 1, session_id: sessionId }]);
+    if (error) throw error;
+    revalidatePath('/shop');
+    return { success: true };
+  } catch { return { success: false, error: "CART_ERROR" }; }
+}
 
-    const { error } = await db.from("products").insert([
-      {
-        name: data.name,
-        price: parsePrice(data.price),
-        description: data.description || "",
-        image_url: data.images[0] || "",
-        stock: parseInt(data.stock) || 0,
-        category_id: categoryId,
-        image_url_2: data.images[1] || "",
-        image_url_3: data.images[2] || "",
-      },
-    ]);
-
-    if (error) return { success: false, error: error.message };
-
-    revalidatePath("/admin/shop");
+export async function removeFromCartAction(cartItemId: string) {
+  try {
+    const { error } = await db.from('cart_items').delete().eq('id', cartItemId);
+    if (error) throw error;
     revalidatePath("/shop");
     return { success: true };
-  } catch (e: any) {
-    return { success: false, error: "Kritischer Fehler beim Speichern." };
-  }
+  } catch (e: any) { return { success: false, error: e.message }; }
 }
 
-/* --- CART & TRANSACTION OPERATIONS --- */
-
-export async function finalizeTransactionAction() {
-  const session_id = "SESSION_01"; // Später durch Auth-ID ersetzen
-
+export async function getCartItemsAction() {
   try {
-    // 1. Warenkorb laden
-    const { data: cartItems, error: cartError } = await db
-        .from("cart_items")
-        .select(`
-        id, quantity, product_id,
-        products (id, price, stock, name)
-      `)
-        .eq("session_id", session_id);
+    const sessionId = await getOrCreateSessionId();
+    const { data } = await db.from('cart_items').select(`id, product_id, quantity, products (name, price)`).eq("session_id", sessionId);
+    return data?.map((item: any) => ({
+      id: item.id,
+      produkt_id: item.product_id,
+      name: item.products?.name || "Unknown Asset",
+      preis: item.products?.price || 0,
+      menge: item.quantity
+    })) || [];
+  } catch { return []; }
+}
 
-    if (cartError || !cartItems || cartItems.length === 0) {
-      return { success: false, error: "Warenkorb ist leer oder nicht erreichbar." };
+/* --- 4. ORDER MANAGEMENT (The "Orders" Integration) --- */
+
+export async function getRecentOrders(limit: number = 5): Promise<Order[]> {
+  const supabase = createClient();
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data: customerData } = await supabase.from('customers').select('id').eq('email', user.email).single();
+    if (!customerData) return [];
+
+    const { data, error } = await supabase.from('orders').select('id, order_date, status, total_price')
+        .eq('customer_id', customerData.id).order('order_date', { ascending: false }).limit(limit);
+
+    if (error) throw error;
+    return (data || []) as Order[];
+  } catch (err) { return []; }
+}
+
+export async function getOrderDetails(orderId: string | number): Promise<Order | null> {
+  const supabase = createClient();
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: orderData, error } = await supabase.from('orders')
+        .select(`id, customer_id, order_date, status, total_price, order_items (id, product_id, quantity, price_at_purchase, products (name))`)
+        .eq('id', typeof orderId === 'string' ? parseInt(orderId) : orderId).single();
+
+    if (error || !orderData) return null;
+
+    return {
+      id: orderData.id,
+      customer_id: orderData.customer_id,
+      order_date: orderData.order_date,
+      status: orderData.status,
+      total_price: Number(orderData.total_price),
+      items: (orderData.order_items as any[]).map((item) => ({
+        id: item.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price_at_purchase: Number(item.price_at_purchase),
+        product_name: item.products?.name || "Aether Komponente"
+      })),
+    };
+  } catch { return null; }
+}
+
+export async function cancelOrder(orderId: number) {
+  const supabase = createClient();
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !user.email) return { success: false, error: "Nicht autorisiert." };
+
+    const { error } = await supabase.from('orders').update({ status: 'Storniert' }).eq('id', orderId);
+    if (error) throw error;
+
+    triggerSentinelNotification({
+      userId: user.id,
+      email: user.email,
+      type: 'SYSTEM',
+      subject: 'ORDER_CANCELLED',
+      message: `Bestätigung: Deine Bestellung #${orderId} wurde storniert.`
+    }).catch(() => {});
+
+    revalidatePath("/client/orders");
+    return { success: true };
+  } catch (err: any) { return { success: false, error: err.message }; }
+}
+
+/* --- 5. TRANSACTION ENGINE (The Checkout Flow) --- */
+
+export async function finalizeTransactionAction(guestData?: { email: string; full_name: string }) {
+  const sessionId = await getOrCreateSessionId();
+  try {
+    const { data: cartItems } = await db.from("cart_items").select(`*, products(*)`).eq("session_id", sessionId);
+    if (!cartItems || cartItems.length === 0) return { success: false, error: "Empty Cart" };
+
+    let customerId = null;
+    if (guestData) {
+      const { data: customer } = await db.from("customers").upsert({ email: guestData.email, full_name: guestData.full_name, tier: 'guest' }, { onConflict: 'email' }).select().single();
+      if (customer) customerId = customer.id;
     }
 
-    // 2. Gesamtpreis berechnen
-    const total_price = cartItems.reduce((acc: number, item: any) => {
-      const price = parsePrice(item.products.price);
-      return acc + (price * item.quantity);
-    }, 0);
+    const total_price = cartItems.reduce((acc: number, item: { products: { price: any; }; quantity: number; }) => acc + (parsePrice(item.products.price) * item.quantity), 0);
+    const { data: order, error: orderError } = await db.from("orders")
+        .insert([{ customer_id: customerId, order_date: new Date().toISOString(), status: "pending", total_price: total_price }]).select().single();
 
-    // 3. Order anlegen (order_date statt created_at nutzen laut Schema)
-    const { data: order, error: orderError } = await db
-        .from("orders")
-        .insert([
-          {
-            order_date: new Date().toISOString(), // Korrigiert laut Schema
-            status: "COMPLETED",
-            total_price: total_price,
-          },
-        ])
-        .select()
-        .single();
+    if (orderError) throw orderError;
 
-    if (orderError) return { success: false, error: "Bestellung konnte nicht erstellt werden." };
-
-    // 4. Bestands-Update und Order Items
     for (const item of cartItems) {
-      const currentStock = item.products.stock || 0;
-
-      if (currentStock < item.quantity) {
-        return { success: false, error: `Bestand zu niedrig für: ${item.products.name}` };
-      }
-
-      // Order Item verknüpfen
       await db.from("order_items").insert({
         order_id: order.id,
         product_id: item.product_id,
         quantity: item.quantity,
         price_at_purchase: parsePrice(item.products.price),
       });
-
-      // Bestand abziehen
-      await db
-          .from("products")
-          .update({ stock: currentStock - item.quantity })
-          .eq("id", item.product_id);
     }
 
-    // 5. Cleanup
-    await db.from("cart_items").delete().eq("session_id", session_id);
-
+    const magicToken = randomBytes(32).toString('hex');
+    await db.from("cart_items").delete().eq("session_id", sessionId);
     revalidatePath("/shop");
-    revalidatePath("/admin");
-
-    return { success: true, orderId: order.id };
-  } catch (error: any) {
-    console.error("AETHER_TRANSACTION_ERROR:", error.message);
-    return { success: false, error: "Transaktion im Kernel abgebrochen." };
-  }
+    return { success: true, orderId: order.id, magicToken };
+  } catch { return { success: false, error: "Kernel Fault" }; }
 }
 
-// Definition der Struktur, die wir von Supabase erwarten
-interface RawInvoiceData {
-  id: number;
-  order_date: string;
-  total_price: number;
-  status: string;
-  order_items: {
-    quantity: number;
-    price_at_purchase: number;
-    products: { name: string } | null;
-  }[];
-}
+/* --- 6. ADMIN OPERATIONS --- */
 
-export async function getCustomerInvoices(clientId: number) {
-  const supabase = await createClient();
-
+export async function saveProductToDB(data: any) {
   try {
-    const { data, error } = await supabase
-        .from("orders")
-        .select(`
-        id,
-        order_date,
-        total_price,
-        status,
-        order_items (
-          quantity,
-          price_at_purchase,
-          products ( name )
-        )
-      `)
-        .eq("customer_id", clientId)
-        .order("order_date", { ascending: false });
-
-    if (error) {
-      console.error("AETHER_DASHBOARD_FETCH_ERROR:", error.message);
-      return { success: false, data: [] };
-    }
-
-    // Typisierung des 'inv' Parameters zur Behebung von TS7006
-    const formattedInvoices = (data as unknown as RawInvoiceData[]).map((inv: RawInvoiceData) => ({
-      id: inv.id,
-      invoiceNumber: `INV-${inv.id.toString().padStart(6, '0')}`,
-      date: new Date(inv.order_date).toLocaleDateString('de-DE'),
-      amount: inv.total_price,
-      status: inv.status,
-      itemCount: inv.order_items?.length || 0
-    }));
-
-    return { success: true, data: formattedInvoices };
-  } catch (error) {
-    console.error("AETHER_CRITICAL_DASHBOARD_FAULT:", error);
-    return { success: false, data: [] };
-  }
+    const { error } = await db.from("products").insert([{ ...data, price: parsePrice(data.price) }]);
+    if (error) throw error;
+    revalidatePath("/admin/shop");
+    revalidatePath("/shop");
+    return { success: true };
+  } catch { return { success: false }; }
 }
 
-/**
- * AETHER OS // FINANCIAL KERNEL
- * Erzeugt strukturierte Rechnungsdaten basierend auf der Order-ID.
- */
+export async function updateProductInDB(id: number, data: any) {
+  try {
+    const { error } = await db.from("products").update(data).eq("id", id);
+    if (error) throw error;
+    revalidatePath("/admin/shop");
+    return { success: true };
+  } catch { return { success: false }; }
+}
+
+export async function deleteProductFromDB(id: number) {
+  try {
+    const { error } = await db.from("products").delete().eq("id", id);
+    if (error) throw error;
+    revalidatePath("/admin/shop");
+    return { success: true };
+  } catch { return { success: false }; }
+}
 
 export async function generateInvoiceData(orderId: number) {
   const supabase = await createClient();
 
   try {
-    // 1. Datenabfrage über Relationen (Join-Ersatz in Supabase)
+    // 1. Datenabfrage mit Supabase-Relationen
+    // Wir holen die Bestellung und 'joinen' über verschachtelte Selects
     const { data: order, error } = await supabase
         .from("orders")
         .select(`
         id,
         order_date,
         total_price,
-        status,
         customers (
           full_name,
           email
@@ -233,12 +258,12 @@ export async function generateInvoiceData(orderId: number) {
       return null;
     }
 
-    // 2. Finanz-Kalkulation
-    // Wir nehmen den Steuersatz des ersten Artikels als Basis für die Gesamtrechnung
+    // 2. Berechnung der Finanzwerte
+    // Wir nutzen den Steuersatz des ersten Produkts für die Kalkulation
     const vatRate = order.order_items?.[0]?.products?.vat_rate || 19;
-    const grossTotal = Number(order.total_price);
+    const grossTotal = Number(order.total_price) || 0;
 
-    // Formel: Netto = Brutto / (1 + MwSt/100)
+    // Formel: Netto = Brutto / (1 + (Satz / 100))
     const netTotal = grossTotal / (1 + vatRate / 100);
     const taxAmount = grossTotal - netTotal;
 
@@ -249,7 +274,7 @@ export async function generateInvoiceData(orderId: number) {
       customer: order.customers?.full_name || "Gast-Kunde",
       email: order.customers?.email || "N/A",
       items: order.order_items.map((item: any) => ({
-        name: item.products?.name || "System-Produkt",
+        name: item.products?.name || "System-Modul",
         qty: item.quantity,
         price: item.price_at_purchase
       })),
@@ -266,90 +291,17 @@ export async function generateInvoiceData(orderId: number) {
   }
 }
 
-/**
- * Fügt ein Produkt zum Warenkorb hinzu.
- * @param productId - Die ID des Produkts aus der Datenbank.
- */
-export async function addToCartAction(productId: string) {
-  const supabase = await createClient();
-
+export async function getCustomerInvoices(customerId: number) {
   try {
-    // Hier würde normalerweise die Logik für den Warenkorb stehen (z.B. in Cookies oder DB)
-    console.log(`[AETHER SHOP] Produkt hinzugefügt: ${productId}`);
-
-    // Wir simulieren hier eine erfolgreiche Aktion für den Build-Prozess
-    // Später binden wir hier deine Warenkorb-Tabelle ein.
-
-    revalidatePath("/shop"); // Aktualisiert die Shop-Ansicht
-    return { success: true };
-
-  } catch (error) {
-    console.error("[AETHER SHOP] Fehler beim Hinzufügen zum Warenkorb:", error);
-    return { success: false, error: "Fehler beim Aktualisieren des Warenkorbs" };
-  }
-}
-/**
- * UPDATER: Hier lag der Fehler (Fehlender Export)
- */
-export async function updateProductInDB(id: string, data: any) {
-  const supabase = await createClient();
-
-  try {
-    const { error } = await supabase
-        .from("products") // Stelle sicher, dass die Tabelle in Supabase so heißt
-        .update(data)
-        .eq("id", id);
+    const { data, error } = await db
+        .from("orders")
+        .select("*")
+        .eq("customer_id", customerId)
+        .order("order_date", { ascending: false });
 
     if (error) throw error;
-
-    revalidatePath("/admin/shop");
-    return { success: true };
-  } catch (error: any) {
-    console.error("AETHER_SHOP_UPDATE_ERROR:", error.message);
-    return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, error: e.message };
   }
 }
-
-/**
- * DELETER: Ebenfalls wichtig für den ShopClientWrapper
- */
-export async function deleteProductFromDB(id: string) {
-  const supabase = await createClient();
-
-  try {
-    const { error } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", id);
-
-    if (error) throw error;
-
-    revalidatePath("/admin/shop");
-    return { success: true };
-  } catch (error: any) {
-    console.error("AETHER_SHOP_DELETE_ERROR:", error.message);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Entfernt ein Produkt aus dem Warenkorb.
- * @param productId - Die ID des zu entfernenden Produkts.
- */
-export async function removeFromCartAction(productId: string) {
-  const supabase = await createClient();
-
-  try {
-    console.log(`[AETHER SHOP] Entferne Produkt: ${productId}`);
-
-    // Hier folgt später die Supabase-Logik zum Löschen aus der 'cart'-Tabelle
-    // const { error } = await supabase.from('cart').delete().eq('product_id', productId);
-
-    revalidatePath("/"); // Aktualisiert die Homepage/Shop-Ansicht
-    return { success: true };
-  } catch (error: any) {
-    console.error("AETHER_CART_REMOVE_ERROR:", error.message);
-    return { success: false, error: error.message };
-  }
-}
-

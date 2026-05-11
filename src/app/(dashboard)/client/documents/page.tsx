@@ -5,7 +5,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getCustomerInvoices, generateInvoiceData } from "@/modules/shop/actions"; // Action importiert
+import { getCustomerInvoices, generateInvoiceData } from "@/modules/shop/actions"; 
 import { FileText, Download, Loader2, AlertCircle } from "lucide-react";
 
 export default function DocumentsPage() {
