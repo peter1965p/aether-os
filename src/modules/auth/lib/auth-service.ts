@@ -2,12 +2,8 @@
  * AETHER OS // AUTH-SERVICE LOGIC
  * Pfad: src/modules/auth/lib/auth-service.ts
  */
-import { createClient } from "@/lib/db"; // Nutze den Server-Client für RSC
+import { createClient } from "@/lib/db";
 
-/**
- * LOGIN_LOGIC
- * Kern-Validierung für den System-Zugang
- */
 export async function loginUser(email: string, password_input: string) {
   const supabase = await createClient();
 
@@ -20,7 +16,7 @@ export async function loginUser(email: string, password_input: string) {
     return { success: false, error: error?.message };
   }
 
-  // Hybride Rollen-Abfrage
+  // 1. Hybride Rollen-Abfrage: Wer ist dieser User?
   const [adminRes, customerRes] = await Promise.all([
     supabase.from('users').select('role, username').eq('id', data.user.id).maybeSingle(),
     supabase.from('customers').select('id, full_name').eq('email', email).maybeSingle()
@@ -28,12 +24,15 @@ export async function loginUser(email: string, password_input: string) {
 
   const displayName = adminRes.data?.username || customerRes.data?.full_name || email.split('@')[0];
 
+  // 2. Weichenstellung vorbereiten
   let userType: 'admin' | 'client' | 'dual' = 'client';
-  let targetPath = '/';
+  let targetPath = '/client'; // Default Fallback
 
+  // 3. DIE LOGIK-WEICHE (Korrigiert auf deine reale Struktur)
   if (adminRes.data && customerRes.data) {
     userType = 'dual';
-    targetPath = '/admin';
+    // WICHTIG: Kein "/auth/", da (auth) eine Route-Group ist!
+    targetPath = '/select';
   } else if (adminRes.data) {
     userType = 'admin';
     targetPath = '/admin';
@@ -46,13 +45,17 @@ export async function loginUser(email: string, password_input: string) {
     success: true,
     type: userType,
     target: targetPath,
-    user: { name: displayName, email }
+    user: {
+      name: displayName,
+      email,
+      isAdmin: !!adminRes.data,
+      isCustomer: !!customerRes.data
+    }
   };
 }
 
 /**
  * IDENTITY_RESOLVER
- * Fix für den Build-Fehler: Stellt die Kunden-ID für Orders bereit
  */
 export async function getActiveClientId() {
   const supabase = await createClient();

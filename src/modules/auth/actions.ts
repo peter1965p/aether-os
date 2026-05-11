@@ -1,16 +1,10 @@
-// src/modules/auth/actions.ts
-"use server";
+'use server'
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { loginUser } from "./lib/auth-service";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/db";
-import { VerificationEmail } from './templates/VerificationEmail';
-import {Resend} from "resend";
-
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { loginUser } from "./lib/auth-service";
+import {createClient} from "@/lib/db";
 
 export async function handleLogin(formData: FormData) {
   const email = formData.get("email") as string;
@@ -18,67 +12,47 @@ export async function handleLogin(formData: FormData) {
 
   const result = await loginUser(email, password);
 
-  if (result.error || !result.success) {
-    return {
-      success: false,
-      message: result.error || "ACCESS DENIED: Credentials Invalid"
-    };
+  if (result.success && result.user) {
+    const cookieStore = await cookies();
+
+    // Auth-Flags setzen (HttpOnly für Security)
+    cookieStore.set("aether_auth_active", "true", { httpOnly: true, secure: true });
+    cookieStore.set("aether_user_name", result.user.name, { httpOnly: true });
+    cookieStore.set("aether_session_start", Date.now().toString());
+
+    // Cache leeren, damit die Middleware sofort greift
+    revalidatePath("/", "layout");
+
+    return { success: true, target: result.target };
   }
 
-  const cookieStore = await cookies();
-
-  // --- NEU: USER-DATEN AUS DB IN COOKIES SPEICHERN ---
-  // Wir speichern den Namen und die E-Mail, damit die NavBar sie auslesen kann
-  cookieStore.set("aether_user_name", result.user?.name || "Unknown User", { path: "/" });
-  cookieStore.set("aether_user_email", email, { path: "/" });
-
-  cookieStore.set("aether_session_start", Date.now().toString(), {
-    path: "/",
-    httpOnly: false
-  });
-
-  cookieStore.set("aether_auth_active", "true", {
-    path: "/",
-    httpOnly: true,
-    maxAge: 60 * 60 * 2
-  });
-
-  revalidatePath("/", "layout");
-
-  return {
-    success: true,
-    target: result.target,
-    type: result.type,
-    message: "CONNECTION ESTABLISHED"
-  };
+  return { success: false, message: result.error || "ACCESS DENIED" };
 }
 
 export async function handleLogout() {
   const cookieStore = await cookies();
 
-  // Alle Cookies löschen
-  cookieStore.delete('aether_session_start');
-  cookieStore.delete('aether_auth_active');
-  cookieStore.delete('aether_user_name');
-  cookieStore.delete('aether_user_email');
+  // Alle relevanten Cookies killen
+  cookieStore.delete("aether_auth_active");
+  cookieStore.delete("aether_user_name");
+  cookieStore.delete("aether_session_start");
 
+  revalidatePath("/", "layout");
   redirect("/login");
 }
 
 export async function resendVerificationEmail(email: string) {
   const supabase = await createClient();
 
-  // Supabase Auth bietet eine direkte Methode zum erneuten Senden
   const { error } = await supabase.auth.resend({
     type: 'signup',
     email: email,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   });
 
   if (error) {
-    console.error("RESEND_ERROR:", error.message);
     return { success: false, message: error.message };
   }
 

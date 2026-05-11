@@ -71,12 +71,12 @@ export default async function Navbar() {
                 <CartNavTrigger initialCount={cartCount} />
 
                 <Link
-                    href="/admin"
+                    href="/login"
                     className="flex items-center gap-2 bg-white/5 border border-white/10 hover:border-blue-500/50 px-5 py-2 rounded-lg transition-all group"
                 >
                     <Cpu size={14} className="text-blue-500 group-hover:animate-pulse" />
                     <span className="text-[10px] text-white font-black uppercase tracking-widest italic">
-                        Login Kernel
+                        Login
                     </span>
                     <ChevronRight size={12} className="text-zinc-600 group-hover:text-blue-500 transition-transform group-hover:translate-x-1" />
                 </Link>
