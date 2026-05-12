@@ -1,15 +1,15 @@
-import Link from 'next/link';
-import { CheckCircleIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+/**
+ * AETHER OS // SUCCESS_PAGE (Optimiert)
+ */
 
-// 1. Wir machen die Komponente 'async'
-// 2. Wir definieren searchParams als Promise
+import Link from 'next/link';
+import { CheckCircleIcon, DocumentTextIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+
 export default async function SuccessPage({
                                             searchParams
                                           }: {
   searchParams: Promise<{ orderId: string }>
 }) {
-
-  // 3. Wir warten auf die Parameter, bevor wir sie benutzen
   const params = await searchParams;
 
   return (
@@ -27,10 +27,10 @@ export default async function SuccessPage({
             Transaction successfully logged to AETHER_AUDIT_TRAIL
           </p>
 
+          {/* Info Box */}
           <div className="bg-white/5 rounded-2xl p-6 mb-12 border border-white/5 text-left font-mono">
             <div className="flex justify-between text-[10px] mb-2">
               <span className="text-white/20 uppercase">Order_ID:</span>
-              {/* 4. Nutze params.orderId statt searchParams.orderId */}
               <span className="text-blue-300 font-bold">#{params.orderId}</span>
             </div>
             <div className="flex justify-between text-[10px]">
@@ -40,12 +40,14 @@ export default async function SuccessPage({
           </div>
 
           <div className="flex flex-col gap-4">
+            {/* NEU: Weiterleitung zum Identity-Check statt zurück zum Shop */}
             <Link
-                href="/shop"
-                className="w-full bg-orange-600 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-blue-900 hover:bg-blue-300 hover:text-orange-600 transition-all text-center"
+                href={`/checkout/auth?orderId=${params.orderId}`}
+                className="group w-full bg-orange-600 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-black hover:bg-white transition-all text-center flex items-center justify-center gap-2"
             >
-              Return to Store
+              Finalize Profile Uplink <ArrowRightIcon className="size-4 group-hover:translate-x-1 transition-transform" />
             </Link>
+
             <button className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white transition-colors">
               <DocumentTextIcon className="size-4" /> View Audit Log
             </button>

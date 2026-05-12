@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
 import {
     CreditCard,
@@ -9,8 +9,7 @@ import {
     X,
     Trash2
 } from "lucide-react";
-import { removeFromCartAction } from '@/modules/shop/actions'
-import { finalizeTransactionAction } from '@/modules/shop/actions'
+import { removeFromCartAction, getCartItemsAction, finalizeTransactionAction } from '@/modules/shop/actions'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from "@/modules/shop/useCartStore"
 
@@ -22,15 +21,52 @@ interface CartItem {
     menge: number
 }
 
-export default function CartDrawer({ items }: { items: CartItem[] }) {
+// Wir entfernen 'items' aus den Props, da wir sie intern synchronisieren
+export default function CartDrawer() {
+    const [localItems, setLocalItems] = useState<CartItem[]>([])
     const [isSyncing, setIsSyncing] = useState(false)
+    const [isLoadingData, setIsLoadingData] = useState(false)
     const router = useRouter()
 
-    // Globaler State aus dem Store
     const isOpen = useCartStore((state) => state.isOpen)
     const closeCart = useCartStore((state) => state.closeCart)
 
-    const subtotal = items.reduce((acc, item) => acc + (item.preis * item.menge), 0)
+    /**
+     * SYSTEM_SYNC_PROTOCOL:
+     * Diese Funktion holt die aktuellen Assets direkt aus der Datenbank/Server Action.
+     */
+    const syncBufferData = async () => {
+        setIsLoadingData(true)
+        try {
+            const data = await getCartItemsAction()
+            // Wir mappen die Daten auf unser lokales Interface
+            setLocalItems(data as CartItem[])
+        } catch (error) {
+            console.error("BUFFER_SYNC_FAULT", error)
+        } finally {
+            setIsLoadingData(false)
+        }
+    }
+
+    /**
+     * Trigger den Sync, sobald der Drawer geöffnet wird.
+     */
+    useEffect(() => {
+        if (isOpen) {
+            syncBufferData()
+        }
+    }, [isOpen])
+
+    const subtotal = localItems.reduce((acc, item) => acc + (item.preis * item.menge), 0)
+
+    const handleRemove = async (id: string) => {
+        const result = await removeFromCartAction(id)
+        if (result.success) {
+            // Nach dem Löschen sofort neu synchronisieren
+            syncBufferData()
+            router.refresh()
+        }
+    }
 
     const handleCheckout = async () => {
         setIsSyncing(true)
@@ -82,15 +118,21 @@ export default function CartDrawer({ items }: { items: CartItem[] }) {
 
                                     <div className="mt-12">
                                         <div className="flow-root">
-                                            {items.length === 0 ? (
+                                            {isLoadingData ? (
+                                                <div className="flex flex-col items-center justify-center py-20 opacity-50">
+                                                    <Loader2 className="size-8 animate-spin text-orange-600 mb-4" />
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.3em]">Syncing Buffer...</p>
+                                                </div>
+                                            ) : localItems.length === 0 ? (
                                                 <div className="flex flex-col items-center justify-center py-20 opacity-20 italic">
                                                     <ShoppingBag className="size-12 mb-4" />
                                                     <p className="text-[10px] font-black uppercase tracking-[0.3em]">No Assets Logged</p>
                                                 </div>
                                             ) : (
                                                 <ul role="list" className="-my-6 divide-y divide-white/5">
-                                                    {items.map((product) => (
+                                                    {localItems.map((product) => (
                                                         <li key={product.id} className="flex py-6 group">
+                                                            {/* Asset Icon Slot */}
                                                             <div className="size-20 shrink-0 overflow-hidden rounded-2xl bg-white/5 border border-white/10 group-hover:border-orange-600/30 transition-all">
                                                                 <div className="flex items-center justify-center h-full text-orange-600/30 group-hover:text-orange-600">
                                                                     <ShoppingBag className="size-8" />
@@ -111,9 +153,7 @@ export default function CartDrawer({ items }: { items: CartItem[] }) {
                                                                     <p className="text-white/40">Quantity <span className="text-white">{product.menge}</span></p>
                                                                     <button
                                                                         type="button"
-                                                                        onClick={async () => {
-                                                                            await removeFromCartAction(String(product.id));
-                                                                        }}
+                                                                        onClick={() => handleRemove(String(product.id))}
                                                                         className="text-orange-600/50 hover:text-orange-600 transition-colors flex items-center gap-1"
                                                                     >
                                                                         <Trash2 className="size-3" /> Remove
@@ -128,6 +168,7 @@ export default function CartDrawer({ items }: { items: CartItem[] }) {
                                     </div>
                                 </div>
 
+                                {/* Footer-Sektor */}
                                 <div className="border-t border-white/10 bg-white/[0.01] px-6 py-8">
                                     <div className="flex justify-between text-sm font-black italic uppercase tracking-widest text-white mb-2">
                                         <p>Total Sync Value</p>
@@ -137,7 +178,7 @@ export default function CartDrawer({ items }: { items: CartItem[] }) {
                                     <div className="flex flex-col gap-4">
                                         <button
                                             onClick={handleCheckout}
-                                            disabled={isSyncing || items.length === 0}
+                                            disabled={isSyncing || localItems.length === 0}
                                             className="group relative flex w-full items-center justify-between overflow-hidden rounded-sm border border-blue-500/30 bg-blue-600/10 px-6 py-4 transition-all duration-300 hover:border-blue-500 hover:bg-blue-600/20 disabled:opacity-30"
                                         >
                                             <div className="relative z-10 flex flex-col text-left">

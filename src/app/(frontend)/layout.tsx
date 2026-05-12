@@ -1,7 +1,6 @@
 /**
  * AETHER OS // FRONTEND LAYOUT
- * Pfad: src/app/(frontend)/layout.tsx
- * Status: Korrigiert für Unified Nav-Kernel V4.2.2
+ * Status: Edge-to-Edge Optimized for V4.3.0
  */
 import db from "@/lib/db";
 import Navbar from "@/components/navigation/frontend/NavBar";
@@ -13,38 +12,21 @@ export default async function FrontendLayout({
                                              }: {
     children: React.ReactNode;
 }) {
-    // 1. Session & User abrufen (Sicherheits-Check via getUser)
     const { data: { user } } = await db.auth.getUser();
 
-    // 2. Daten für den Nav-Kernel aufbereiten
-    const sessionActive = !!user;
-
-    // Namens-Logik: Priorität auf Metadaten, Fallback auf E-Mail-Präfix
-    const userName = user?.user_metadata?.full_name ||
-        user?.user_metadata?.name ||
-        user?.email?.split('@')[0] ||
-        "Guest";
-
-    const userEmail = user?.email || "";
-
     return (
-        <div className="flex flex-col min-h-screen">
-            {/* Tracking Layer */}
+        /* w-full und overflow-x-hidden sind hier entscheidend */
+        <div className="flex flex-col min-h-screen w-full overflow-x-hidden bg-[#020406]">
             <Tracker />
 
-            {/* 
-                NAVBAR WRAPPER 
-                Wir übergeben nun alle Props, die das Interface NavbarProps verlangt.
-            */}
             <header className="fixed top-0 left-0 right-0 z-[100]">
                 <Navbar />
             </header>
 
-            {/* 
-                MAIN CONTENT 
-                pt-[96px] (h-24 der Navbar) sorgt dafür, dass der Content unter der Navbar startet
+            {/* WICHTIG: pt-24 bleibt für den Abstand, aber wir stellen sicher, 
+                dass keine max-w-7xl oder mx-auto den Content hier schon einsperrt!
             */}
-            <main className="flex-grow pt-24 relative z-10">
+            <main className="flex-grow pt-24 relative z-10 w-full">
                 {children}
             </main>
 

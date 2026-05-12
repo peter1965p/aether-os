@@ -59,11 +59,27 @@ async function getOrCreateSessionId(): Promise<string> {
 export async function addToCartAction(productId: number) {
   try {
     const sessionId = await getOrCreateSessionId();
-    const { error } = await db.from('cart_items').insert([{ product_id: productId, quantity: 1, session_id: sessionId }]);
+
+    // 1. Daten in die DB schreiben
+    const { error } = await db
+        .from('cart_items')
+        .insert([{
+          product_id: productId,
+          quantity: 1,
+          session_id: sessionId
+        }]);
+
     if (error) throw error;
-    revalidatePath('/shop');
+
+    // 2. CRITICAL SYNC: Wir revalidieren nicht nur den Pfad, 
+    // sondern das gesamte Layout, damit die Navbar-Badge überall aktuell ist.
+    revalidatePath('/', 'layout');
+
     return { success: true };
-  } catch { return { success: false, error: "CART_ERROR" }; }
+  } catch (err) {
+    console.error("AETHER_CART_FAULT:", err);
+    return { success: false, error: "CART_ERROR" };
+  }
 }
 
 export async function removeFromCartAction(cartItemId: string) {
