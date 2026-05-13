@@ -4,6 +4,10 @@
  */
 import { createClient } from "@/lib/db";
 
+/**
+ * Kern-Logik für die Authentifizierung und Rollen-Verteilung.
+ * Unterstützt die hybride Struktur zwischen Company-Admins und Endnutzern.
+ */
 export async function loginUser(email: string, password_input: string) {
   const supabase = await createClient();
 
@@ -16,7 +20,7 @@ export async function loginUser(email: string, password_input: string) {
     return { success: false, error: error?.message };
   }
 
-  // 1. Hybride Rollen-Abfrage: Wer ist dieser User?
+  // 1. Hybride Rollen-Abfrage: Wer ist dieser User im AETHER-System?
   const [adminRes, customerRes] = await Promise.all([
     supabase.from('users').select('role, username').eq('id', data.user.id).maybeSingle(),
     supabase.from('customers').select('id, full_name').eq('email', email).maybeSingle()
@@ -24,14 +28,14 @@ export async function loginUser(email: string, password_input: string) {
 
   const displayName = adminRes.data?.username || customerRes.data?.full_name || email.split('@')[0];
 
-  // 2. Weichenstellung vorbereiten
+  // 2. Weichenstellung vorbereiten (Admin vs. Client)
   let userType: 'admin' | 'client' | 'dual' = 'client';
   let targetPath = '/client'; // Default Fallback
 
-  // 3. DIE LOGIK-WEICHE (Korrigiert auf deine reale Struktur)
+  // 3. DIE LOGIK-WEICHE (Optimiert für AETHER OS Struktur)
   if (adminRes.data && customerRes.data) {
     userType = 'dual';
-    // WICHTIG: Kein "/auth/", da (auth) eine Route-Group ist!
+    // User hat beide Rollen -> Auswahlterminal ansteuern
     targetPath = '/select';
   } else if (adminRes.data) {
     userType = 'admin';
@@ -56,6 +60,7 @@ export async function loginUser(email: string, password_input: string) {
 
 /**
  * IDENTITY_RESOLVER
+ * Extrahiert die aktive Kunden-ID basierend auf der aktuellen Session.
  */
 export async function getActiveClientId() {
   const supabase = await createClient();
