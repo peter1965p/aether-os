@@ -30,7 +30,7 @@ export default async function FrontendLayout({
                 {children}
             </main>
 
-            <Footer />
+            
         </div>
     );
 }

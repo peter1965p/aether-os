@@ -218,18 +218,7 @@ export default async function RootHomePage() {
                         </div>
 
                         {/* --- FOOTER: ENTERPRISE FINAL --- */}
-                        <footer className="w-full py-40 border-t border-white/5 bg-black/60 relative overflow-hidden">
-                            <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-12 relative z-10">
-                                <div className="text-[14px] font-black uppercase tracking-[0.8em] italic opacity-50 hover:opacity-100 transition-opacity cursor-default">
-                                    <span className="text-orange-600">Aether</span> OS // PAEFFGEN-IT © 2026
-                                </div>
-                                <div className="flex gap-16 text-[10px] font-black uppercase tracking-[0.4em] text-zinc-700">
-                                    <span className="hover:text-blue-500 transition-colors cursor-pointer">Protocol_Logs</span>
-                                    <span className="hover:text-blue-500 transition-colors cursor-pointer">Security_Vault</span>
-                                    <span className="hover:text-blue-500 transition-colors cursor-pointer">Identity_Node</span>
-                                </div>
-                            </div>
-                        </footer>
+                        
                     </main>
                 )}
             </div>
