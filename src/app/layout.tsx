@@ -4,6 +4,7 @@
  * Zweck: Zentrales Layout, Branding-Initialisierung und Session-Management.
  */
 
+import { headers } from 'next/headers';
 import type { Metadata } from "next";
 import db from "@/lib/db"; // Standard-Import deines Supabase-Clients
 import { Inter, Bebas_Neue, JetBrains_Mono, Montserrat, Oswald } from "next/font/google";
@@ -87,14 +88,13 @@ export default async function RootLayout({
         <ThemeProvider>
             <Tracker />
             <SessionGuard />
-            <Navbar />
+            
 
-            {/* TEST ZEILE */}
-            <div className="fixed top-0 left-0 w-full h-1 bg-red-500 z-[9999]"></div>
+        
             
 
             <main>{children}</main>
-            <Footer />
+            
         </ThemeProvider>
         </body>
         </html>

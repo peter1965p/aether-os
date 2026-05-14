@@ -26,9 +26,12 @@ export default async function FrontendLayout({
             {/* WICHTIG: pt-24 bleibt für den Abstand, aber wir stellen sicher, 
                 dass keine max-w-7xl oder mx-auto den Content hier schon einsperrt!
             */}
+            
             <main className="flex-grow pt-24 relative z-10 w-full">
                 {children}
             </main>
+
+            <Footer />
 
             
         </div>
