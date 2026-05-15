@@ -29,5 +29,21 @@ export const createClient = () => {
   return supabaseInstance;
 }
 
+export async function executeSql(query: string) {
+  const supabase = createClient();
+  
+  // Wir nutzen PostgREST's rpc call, um SQL auszuführen.
+  // WICHTIG: Du musst in Supabase eine Function namens 'execute_sql' haben,
+  // damit das hier funktioniert!
+  const { data, error } = await supabase.rpc('execute_sql', { query_text: query });
+
+  if (error) {
+    console.error("KERNEL_SQL_EXCEPTION:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data };
+}
+
 export const db = createClient();
 export default db;

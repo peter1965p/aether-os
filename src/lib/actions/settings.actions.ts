@@ -1,21 +1,20 @@
 /**
- * AETHER OS // CORE ACTIONS // SETTINGS & INTELLIGENCE
+ * AETHER OS // CORE ACTIONS // SETTINGS & INFRASTRUCTURE SYNC
+ * Steuert Branding, Legal Identity und Multi-Gateway Infrastructure.
  */
+
 "use server";
 
-import db from "@/lib/db";
+import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
-/**
- * Holt die System-Daten.
- */
 export async function getGlobalSettings() {
     try {
         const { data: settings, error: settingsError } = await db
             .from("settings")
             .select("*")
             .limit(1)
-            .maybeSingle(); // Sicherer als .single()
+            .maybeSingle();
 
         const { data: intel } = await db
             .from("intelligence_hub")
@@ -25,104 +24,112 @@ export async function getGlobalSettings() {
 
         if (settingsError) throw settingsError;
 
-        return {
-            ...settings,
-            intel: intel || null
-        };
+        return { ...settings, intel: intel || null };
     } catch (err) {
-        console.error("OS_DATA_FETCH_FAULT:", err);
+        console.error("AETHER_OS // SETTINGS_FETCH_CRITICAL:", err);
         return null;
     }
 }
 
-/**
- * Synchronisiert das Branding und die Intelligence.
- */
-/**
- * AETHER OS // CORE SETTINGS SYNC
- * Aktualisierte Version inklusive Legal Identity & Operator Details.
- */
 export async function updateGlobalSettings(formData: FormData) {
-    // 1. EXTRAKTION DER FORMULARDATEN
-    // Die Namen in den Anführungszeichen müssen exakt mit dem 'name'-Attribut deiner HTML-Inputs übereinstimmen.
-    const company = formData.get("company") as string;
-    const designation = formData.get("designation") as string;
-    const primaryColor = formData.get("primary_color") as string;
-    const secondaryColor = formData.get("secondary_color") as string;
+    // Identität & Finanzen
+    const company = formData.get("company_name") as string;
+    const designation = formData.get("system_designation") as string;
     const vatStandard = formData.get("vat_standard") as string;
     const vatReduced = formData.get("vat_reduced") as string;
     const supportEmail = formData.get("support_email") as string;
-    const supportPhone = formData.get("support_phone") as string;
 
-    // Legal Identity & Operator Details
+    // Legal & Operator
     const ownerName = formData.get("owner_name") as string;
     const companyFullName = formData.get("company_full_name") as string;
     const addressFull = formData.get("address_full") as string;
     const taxNumber = formData.get("tax_number") as string;
     const vatId = formData.get("vat_id") as string;
 
-    // Intelligence Hub Daten
+    // Infrastructure (AWS & Resend)
+    const awsAccessKey = formData.get("aws_access_key") as string;
+    const awsSecretKey = formData.get("aws_secret_key") as string;
+    const awsRegion = formData.get("aws_region") as string;
+    const awsBucket = formData.get("aws_default_bucket") as string;
+    const resendKey = formData.get("resend_api_key") as string;
+
+    // Multi-Payment Gateway Logic (Stripe & Mollie)
+    const stripePublic = formData.get("stripe_public_key") as string;
+    const stripeSecret = formData.get("stripe_secret_key") as string;
+    const mollieLive = formData.get("mollie_live_key") as string;
+    const mollieTest = formData.get("mollie_test_key") as string;
+    const activeGateway = formData.get("active_payment_gateway") as string; // 'stripe' | 'mollie'
+
+    // Intelligence Hub
     const strategyMode = formData.get("strategy_mode") as string;
     const marketPulse = formData.get("market_pulse") as string;
     const aiContext = formData.get("ai_context_briefing") as string;
 
     try {
-        // SCHRITT 1: Settings Update in der Tabelle 'public.settings'
-        // Wir suchen den ersten Eintrag, um die ID für das Update zu erhalten
         const { data: current } = await db.from("settings").select("id").limit(1).maybeSingle();
 
         const settingsPayload = {
             company_name: company,
             system_designation: designation,
-            primary_color: primaryColor,
-            secondary_color: secondaryColor,
             vat_standard: vatStandard ? parseFloat(vatStandard) : 19.0,
             vat_reduced: vatReduced ? parseFloat(vatReduced) : 7.0,
             support_email: supportEmail,
-            support_phone: supportPhone,
-
-            // Zuordnung zu den neuen Spalten deiner DB
             owner_name: ownerName,
             company_full_name: companyFullName,
             address_full: addressFull,
             tax_number: taxNumber,
             vat_id: vatId,
-
+            aws_access_key: awsAccessKey,
+            aws_secret_key: awsSecretKey,
+            aws_region: awsRegion || "eu-central-1",
+            aws_default_bucket: awsBucket,
+            resend_api_key: resendKey,
+            stripe_public_key: stripePublic,
+            stripe_secret_key: stripeSecret,
+            mollie_live_key: mollieLive,
+            mollie_test_key: mollieTest,
+            active_payment_gateway: activeGateway || 'stripe',
             updated_at: new Date().toISOString()
         };
 
         if (current?.id) {
-            // Update des bestehenden Datensatzes
-            const { error: updateError } = await db.from("settings").update(settingsPayload).eq("id", current.id);
-            if (updateError) throw updateError;
+            await db.from("settings").update(settingsPayload).eq("id", current.id);
         } else {
-            // Erstellung des initialen Datensatzes
-            const { error: insertError } = await db.from("settings").insert([settingsPayload]);
-            if (insertError) throw insertError;
+            await db.from("settings").insert([settingsPayload]);
         }
 
-        // SCHRITT 2: Intelligence Hub Update (Separates Modul)
-        const { error: intelError } = await db
-            .from("intelligence_hub")
-            .upsert({
-                id: "global_config",
-                strategy_mode: strategyMode,
-                market_pulse: marketPulse ? parseInt(marketPulse) : 50,
-                ai_context_briefing: aiContext,
-                updated_at: new Date().toISOString()
-            });
+        await db.from("intelligence_hub").upsert({
+            id: "global_config",
+            strategy_mode: strategyMode,
+            market_pulse: marketPulse ? parseInt(marketPulse) : 50,
+            ai_context_briefing: aiContext,
+            updated_at: new Date().toISOString()
+        });
 
-        if (intelError) throw intelError;
-
-        // SCHRITT 3: REVALIDIERUNG (Cache-Management)
-        // Erzwingt das Neuladen der Daten auf allen wichtigen Seiten
         revalidatePath("/", "layout");
-        revalidatePath("/impressum");
         revalidatePath("/admin/settings");
-
         return { success: true, message: "AETHER_CORE_SYNC_COMPLETE" };
     } catch (err: any) {
-        console.error("OS_SYNC_FAULT:", err.message);
+        console.error("AETHER_OS // SYNC_FAULT:", err.message);
         return { success: false, message: "DATABASE_WRITE_ERROR" };
+    }
+}
+
+export async function getDynamicConfig() {
+    try {
+        const { data: config } = await db.from("settings").select("*").maybeSingle();
+
+        return {
+            awsAccessKey: config?.aws_access_key || process.env.AWS_ACCESS_KEY_ID,
+            awsSecretKey: config?.aws_secret_key || process.env.AWS_SECRET_ACCESS_KEY,
+            awsRegion: config?.aws_region || 'eu-central-1',
+            resendKey: config?.resend_api_key || process.env.RESEND_API_KEY,
+            // Payment Gateway Switcher
+            activeGateway: config?.active_payment_gateway || 'stripe',
+            stripeKey: config?.stripe_public_key || process.env.STRIPE_PUBLIC_KEY,
+            mollieKey: config?.mollie_live_key || process.env.MOLLIE_API_KEY
+        };
+    } catch (err) {
+        return { resendKey: process.env.RESEND_API_KEY };
     }
 }

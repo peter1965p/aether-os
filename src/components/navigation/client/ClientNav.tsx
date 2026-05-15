@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * AETHER OS // CLIENT NAVIGATION MODULE
+ */
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
@@ -9,10 +13,15 @@ import {
 import db from "@/lib/db";
 import { handleLogout } from "@/modules/auth/actions";
 
-export default function ClientNav({ email }: { email?: string }) {
+interface ClientNavProps {
+    email?: string;
+    customerId?: string | number;
+}
+
+export default function ClientNav({ email, customerId }: ClientNavProps) {
     const [mounted, setMounted] = useState(false);
     const [time, setTime] = useState(new Date());
-    const [timeLeft, setTimeLeft] = useState(600); // Kunden kriegen 10 Min Idle
+    const [timeLeft, setTimeLeft] = useState(600); 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isNotifyOpen, setIsNotifyOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -22,11 +31,10 @@ export default function ClientNav({ email }: { email?: string }) {
     const resetTimer = useCallback(() => setTimeLeft(600), []);
 
     const fetchNotifications = useCallback(async () => {
-        // Der Client sieht nur SEINE Notifications
         const { data } = await db
             .from('notifications')
             .select('*')
-            .eq('source', 'CLIENT') // Wichtig: Filter für Client-Security
+            .eq('source', 'CLIENT')
             .order('created_at', { ascending: false })
             .limit(5);
 
@@ -97,20 +105,19 @@ export default function ClientNav({ email }: { email?: string }) {
                         <ShieldCheck size={16} className="text-blue-500" />
                     </div>
                     <span className="text-white font-black text-xs tracking-widest uppercase hidden md:block">
-                        Aether <span className="text-blue-500 text-shadow-blue">Client</span>
+                        Aether <span className="text-blue-500">Client</span>
                     </span>
                 </div>
             </div>
 
             {/* CENTER: Session Info */}
-            <div className="flex items-center gap-6 bg-white/[0.01] border border-white/5 px-4 py-1.5 rounded-full shadow-inner">
+            <div className="flex items-center gap-6 bg-white/[0.01] border border-white/5 px-4 py-1.5 rounded-full">
                 <div className="flex items-center gap-2 border-r border-white/10 pr-4">
                     <Clock size={12} className="text-blue-500" />
                     <span className="text-[10px] text-zinc-400 font-bold">
                         {mounted ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--"}
                     </span>
                 </div>
-
                 <div className="flex items-center gap-2">
                     <Timer size={12} className={timeLeft < 60 ? "text-red-500 animate-pulse" : "text-blue-500"} />
                     <span className={`text-[10px] font-black tracking-tighter ${timeLeft < 60 ? "text-red-500" : "text-zinc-500"}`}>
@@ -124,29 +131,19 @@ export default function ClientNav({ email }: { email?: string }) {
 
                 {/* NOTIFICATIONS */}
                 <div className="relative">
-                    <button
-                        onClick={() => setIsNotifyOpen(!isNotifyOpen)}
-                        className="p-2 text-zinc-500 hover:text-blue-400 transition-colors"
-                    >
+                    <button onClick={() => setIsNotifyOpen(!isNotifyOpen)} className="p-2 text-zinc-500 hover:text-blue-400">
                         <Bell size={18} className={notifications.length > 0 ? "animate-pulse text-blue-500" : ""} />
                     </button>
-
                     {isNotifyOpen && (
                         <div className="absolute right-0 mt-2 w-72 bg-[#080808] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-[120]">
-                            <div className="px-4 py-2 bg-blue-500/5 border-b border-white/5 text-[9px] font-black text-blue-500 uppercase tracking-widest">
-                                Client_Feed
-                            </div>
+                            <div className="px-4 py-2 bg-blue-500/5 border-b border-white/5 text-[9px] font-black text-blue-500 uppercase tracking-widest">Client_Feed</div>
                             <div className="max-h-[200px] overflow-y-auto">
-                                {notifications.length > 0 ? (
-                                    notifications.map((n) => (
-                                        <div key={n.id} className="px-4 py-3 border-b border-white/5 hover:bg-white/[0.02]">
-                                            <p className="text-[10px] text-zinc-300 font-medium">{n.msg}</p>
-                                            <span className="text-[7px] text-zinc-600 uppercase font-bold">{n.time} // {n.type}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-6 text-center text-[9px] text-zinc-600 uppercase tracking-widest">No Updates</div>
-                                )}
+                                {notifications.length > 0 ? notifications.map((n) => (
+                                    <div key={n.id} className="px-4 py-3 border-b border-white/5 hover:bg-white/[0.02]">
+                                        <p className="text-[10px] text-zinc-300 font-medium">{n.msg}</p>
+                                        <span className="text-[7px] text-zinc-600 uppercase font-bold">{n.time} // {n.type}</span>
+                                    </div>
+                                )) : <div className="p-6 text-center text-[9px] text-zinc-600 uppercase tracking-widest">No Updates</div>}
                             </div>
                         </div>
                     )}
@@ -154,10 +151,7 @@ export default function ClientNav({ email }: { email?: string }) {
 
                 {/* USER MENU */}
                 <div className="relative">
-                    <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="flex items-center gap-3 bg-white/[0.02] border border-white/5 px-3 py-1.5 rounded-lg hover:border-blue-500/30 transition-all"
-                    >
+                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 px-3 py-1.5 rounded-lg hover:border-blue-500/30 transition-all">
                         <div className="flex flex-col items-end">
                             <span className="text-[9px] font-black text-white uppercase">{email?.split('@')[0] || "CLIENT"}</span>
                             <span className="text-[7px] text-blue-500 font-bold uppercase italic tracking-tighter">Verified_Node</span>
@@ -168,16 +162,13 @@ export default function ClientNav({ email }: { email?: string }) {
                     {isMenuOpen && (
                         <div className="absolute right-0 mt-2 w-44 bg-[#0a0a0a] border border-white/10 rounded-xl p-1 shadow-2xl z-[110]">
                             <Link
-                                href="/client/settings"
+                                href={`/profiles/${customerId}`}
                                 onClick={() => setIsMenuOpen(false)}
                                 className="flex items-center gap-3 px-3 py-2 text-[10px] text-zinc-400 hover:text-white hover:bg-blue-500/10 rounded-lg transition-all font-bold uppercase"
                             >
                                 <Settings size={14} /> Profile
                             </Link>
-                            <button
-                                onClick={onTerminate}
-                                className="w-full flex items-center gap-3 px-3 py-2 text-[10px] text-red-500 hover:bg-red-500/10 rounded-lg transition-all font-bold uppercase mt-1"
-                            >
+                            <button onClick={onTerminate} className="w-full flex items-center gap-3 px-3 py-2 text-[10px] text-red-500 hover:bg-red-500/10 rounded-lg transition-all font-bold uppercase mt-1">
                                 <LogOut size={14} /> Logout
                             </button>
                         </div>

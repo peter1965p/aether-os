@@ -53,7 +53,8 @@ export async function loginUser(email: string, password_input: string) {
       name: displayName,
       email,
       isAdmin: !!adminRes.data,
-      isCustomer: !!customerRes.data
+      isCustomer: !!customerRes.data,
+      customerId: customerRes.data?.id || null
     }
   };
 }
