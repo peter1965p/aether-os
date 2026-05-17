@@ -10,17 +10,17 @@ export default async function EditPage({
   params: Promise<{ id: string }> 
 }) {
   const params = await paramsPromise;
-  const id  = params.id;
-  const db = await createClient();
+  const id = params.id;
+  const db = createClient(); // Proxy/Instanz-kompatibel holen
 
-  // Daten abrufen inklusive Sektionen & Landingpage-Status
-  const { data: page } = await db
+  // Daten abrufen inklusive der neuen sectors-Relation!
+  const { data: page, error } = await db
     .from('pages')
-    .select('*, page_sections(*)')
+    .select('*, sectors(*)')
     .eq('id', id)
     .single();
 
-  if (!page) return notFound();
+  if (error || !page) return notFound();
 
   return <DSPArchitect initialPage={page} />;
 }

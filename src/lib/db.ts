@@ -8,10 +8,8 @@ let supabaseInstance: any = null;
 export const createClient = () => {
   // SERVER-CHECK
   if (typeof window === 'undefined') {
-    // Auf dem Server erstellen wir einen frischen Client.
-    // Next.js 15 leitet die Cookies im Header automatisch weiter, 
-    // wenn createClient() innerhalb einer Server Component (wie layout.tsx)
-    // gerufen wird, die "cookies()" importiert hat.
+    // Auf dem Server erstellen wir IMMER einen frischen Client pro Request.
+    // Das verhindert Race Conditions und sorgt dafür, dass Next.js Header/Cookies korrekt mitschreibt.
     return createSupabaseClient(supabaseUrl, supabaseAnonKey);
   }
 
@@ -32,9 +30,6 @@ export const createClient = () => {
 export async function executeSql(query: string) {
   const supabase = createClient();
   
-  // Wir nutzen PostgREST's rpc call, um SQL auszuführen.
-  // WICHTIG: Du musst in Supabase eine Function namens 'execute_sql' haben,
-  // damit das hier funktioniert!
   const { data, error } = await supabase.rpc('execute_sql', { query_text: query });
 
   if (error) {
@@ -45,5 +40,22 @@ export async function executeSql(query: string) {
   return { success: true, data };
 }
 
-export const db = createClient();
+// Das ultimative, universelle Proxy-Objekt. 
+// Es leitet JEDEN Aufruf (wie .from, .rpc, .auth, .channel) dynamisch 
+// an die aktuelle Client-Instanz weiter. Volle Abwärtskompatibilität!
+export const db = new Proxy({} as any, {
+  get: (target, prop) => {
+    const client = createClient();
+    const value = client[prop];
+    
+    // Wenn die Eigenschaft eine Funktion ist (z.B. .from() oder .channel()), 
+    // binden wir sie an den Client, damit der Kontext nicht verloren geht.
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    
+    return value;
+  }
+});
+
 export default db;
